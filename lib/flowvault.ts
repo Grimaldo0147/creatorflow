@@ -24,6 +24,19 @@ function extractTxId(response: any) {
   return normalizeTxId(rawTxId);
 }
 
+export async function getWalletAddress() {
+  const { request } = await import("@stacks/connect");
+
+  const response: any = await request("stx_getAddresses");
+
+  const address =
+    response?.addresses?.[0]?.address ||
+    response?.result?.addresses?.[0]?.address ||
+    "";
+
+  return address;
+}
+
 export async function getCurrentTestnetBlockHeight() {
   const response = await fetch(
     "https://api.testnet.hiro.so/extended/v1/block?limit=1"

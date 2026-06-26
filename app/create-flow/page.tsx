@@ -6,6 +6,7 @@ import {
   isValidStacksAddress,
   setRoutingRules,
   setSplitAndLockRules,
+  getWalletAddress,
 } from "@/lib/flowvault";
 
 export default function CreateFlow() {
@@ -15,9 +16,23 @@ export default function CreateFlow() {
   const [treasury, setTreasury] = useState("");
   const [designer, setDesigner] = useState("");
   const [amount, setAmount] = useState("10");
+  const [walletAddress, setWalletAddress] = useState("");
+  const [txStatus, setTxStatus] = useState("");
 
   const [treasuryLoading, setTreasuryLoading] = useState(false);
   const [lockLoading, setLockLoading] = useState(false);
+
+  const isBusy = treasuryLoading || lockLoading;
+
+  const connectWallet = async () => {
+    try {
+      const address = await getWalletAddress();
+      setWalletAddress(address);
+    } catch (error) {
+      console.error(error);
+      alert("Wallet connection failed.");
+    }
+  };
 
   const validateTreasuryAddress = () => {
     if (!treasury.trim()) {
@@ -38,17 +53,22 @@ export default function CreateFlow() {
 
     try {
       setTreasuryLoading(true);
+      setTxStatus("Waiting for wallet approval...");
 
       const txId = await setRoutingRules(treasury);
 
       if (!txId) {
+        setTxStatus("Transaction submitted, but no transaction ID was returned.");
         alert("Transaction submitted, but no transaction ID was returned.");
         return;
       }
 
+      setTxStatus("Treasury route submitted successfully.");
+
       router.push(`/result?amount=${amount}&txId=${txId}&primitive=treasury`);
     } catch (error) {
       console.error(error);
+      setTxStatus("Treasury route failed. Please try again.");
       alert("Treasury route failed. Make sure your wallet is on Stacks Testnet.");
     } finally {
       setTreasuryLoading(false);
@@ -60,132 +80,242 @@ export default function CreateFlow() {
 
     try {
       setLockLoading(true);
+      setTxStatus("Fetching current Stacks testnet block...");
+
+      setTxStatus("Waiting for wallet approval...");
 
       const result = await setSplitAndLockRules(treasury);
 
       if (!result.txId) {
+        setTxStatus("Transaction submitted, but no transaction ID was returned.");
         alert("Transaction submitted, but no transaction ID was returned.");
         return;
       }
+
+      setTxStatus("Lock + Treasury route submitted successfully.");
 
       router.push(
         `/result?amount=${amount}&txId=${result.txId}&currentBlock=${result.currentBlock}&futureBlock=${result.futureBlock}&primitive=split-lock`
       );
     } catch (error) {
       console.error(error);
+      setTxStatus("Lock route failed. Please try again.");
       alert("Lock route failed. Use the Treasury Route if this fails.");
     } finally {
       setLockLoading(false);
     }
   };
 
-  const isBusy = treasuryLoading || lockLoading;
-
   return (
-    <main className="min-h-screen bg-black text-white px-4 sm:px-6 py-8 sm:py-12">
-      <section className="max-w-2xl mx-auto">
-        <h1 className="text-3xl sm:text-4xl font-bold mb-3">
-          Create Treasury Route
-        </h1>
+    <main className="min-h-screen bg-black text-white px-4 sm:px-6 py-6 sm:py-10">
+      <section className="max-w-6xl mx-auto">
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-orange-500/30 bg-orange-500/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.2em] text-orange-400">
+              CreatorFlow
+            </div>
 
-        <p className="text-gray-400 mb-6">
-          Route creator or team funds to a treasury/contributor wallet using
-          FlowVault Split Vault Flow on Stacks testnet.
-        </p>
+            <h1 className="text-4xl sm:text-6xl font-black tracking-tight">
+              Treasury route
+            </h1>
 
-        <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-green-500 bg-green-500/10 px-4 py-2 text-sm text-green-400">
-          <span className="h-2 w-2 rounded-full bg-green-400"></span>
-          Wallet Connected • Stacks Testnet
+            <p className="mt-3 max-w-2xl text-gray-400">
+              Configure how funds behave after deposit using FlowVault Split
+              Vault Flow and Lock Vault Flow on Stacks testnet.
+            </p>
+          </div>
+
+          <div className="flex flex-col items-start gap-3 sm:items-end">
+            <button
+              onClick={connectWallet}
+              className="rounded-2xl bg-orange-500 px-5 py-3 font-black text-black transition hover:bg-orange-400"
+            >
+              {walletAddress ? "Wallet Connected" : "+ Connect Wallet"}
+            </button>
+
+            {walletAddress && (
+              <div className="rounded-full border border-green-500/40 bg-green-500/10 px-4 py-2 text-sm text-green-400">
+                {walletAddress.slice(0, 6)}...{walletAddress.slice(-6)} •
+                Stacks Testnet
+              </div>
+            )}
+          </div>
         </div>
 
-        <div className="space-y-5">
-          <input
-            placeholder="Creator / Team wallet address"
-            value={creator}
-            onChange={(e) => setCreator(e.target.value)}
-            className="w-full bg-zinc-900 border border-zinc-700 p-4 rounded-xl outline-none focus:border-orange-500"
-          />
+        <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
+          <div className="rounded-3xl border border-zinc-800 bg-zinc-950 p-5 sm:p-7 shadow-2xl">
+            <div className="mb-6">
+              <h2 className="text-2xl font-black">Configure route</h2>
+              <p className="mt-2 text-sm text-gray-400">
+                Enter the treasury/contributor wallet that receives the routed
+                USDCx flow.
+              </p>
+            </div>
 
-          <input
-            placeholder="Treasury / Contributor wallet address"
-            value={treasury}
-            onChange={(e) => setTreasury(e.target.value)}
-            className="w-full bg-zinc-900 border border-zinc-700 p-4 rounded-xl outline-none focus:border-orange-500"
-          />
+            <div className="space-y-4">
+              <input
+                placeholder="Creator / Team wallet address"
+                value={creator}
+                onChange={(e) => setCreator(e.target.value)}
+                className="w-full rounded-2xl border border-zinc-800 bg-black p-4 text-sm outline-none transition focus:border-orange-500"
+              />
 
-          <input
-            placeholder="Optional designer / team wallet address"
-            value={designer}
-            onChange={(e) => setDesigner(e.target.value)}
-            className="w-full bg-zinc-900 border border-zinc-700 p-4 rounded-xl outline-none focus:border-orange-500"
-          />
+              <input
+                placeholder="Treasury / Contributor wallet address"
+                value={treasury}
+                onChange={(e) => setTreasury(e.target.value)}
+                className="w-full rounded-2xl border border-zinc-800 bg-black p-4 text-sm outline-none transition focus:border-orange-500"
+              />
 
-          <input
-            placeholder="Flow amount"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            className="w-full bg-zinc-900 border border-zinc-700 p-4 rounded-xl outline-none focus:border-orange-500"
-          />
+              <input
+                placeholder="Optional designer / team wallet address"
+                value={designer}
+                onChange={(e) => setDesigner(e.target.value)}
+                className="w-full rounded-2xl border border-zinc-800 bg-black p-4 text-sm outline-none transition focus:border-orange-500"
+              />
 
-          <div className="bg-zinc-900 border border-zinc-700 p-5 rounded-xl">
-            <h2 className="font-semibold mb-3">Treasury Routing Rule</h2>
+              <input
+                placeholder="Flow amount"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                className="w-full rounded-2xl border border-zinc-800 bg-black p-4 text-sm outline-none transition focus:border-orange-500"
+              />
+            </div>
 
-            <p>1 USDCx routes to the selected Treasury / Contributor wallet.</p>
+            {txStatus && (
+              <div className="mt-5 rounded-2xl border border-orange-500/30 bg-orange-500/10 p-4 text-sm text-orange-200">
+                {txStatus}
+              </div>
+            )}
 
-            <p className="mt-2">
-              Remaining funds stay with the creator/team flow.
-            </p>
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              <button
+                onClick={createTreasuryRoute}
+                disabled={isBusy}
+                className="rounded-2xl bg-orange-500 px-5 py-4 font-black text-black transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {treasuryLoading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="h-5 w-5 animate-spin rounded-full border-2 border-black border-t-transparent"></span>
+                    Running route...
+                  </span>
+                ) : (
+                  "Create Treasury Route"
+                )}
+              </button>
 
-            <p className="text-gray-400 text-sm mt-3">
-              CreatorFlow uses FlowVault Split Vault Flow as the base primitive
-              for treasury and contributor payout routing.
-            </p>
+              <button
+                onClick={createLockRoute}
+                disabled={isBusy}
+                className="rounded-2xl border border-orange-500 px-5 py-4 font-black text-orange-400 transition hover:bg-orange-500 hover:text-black disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {lockLoading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="h-5 w-5 animate-spin rounded-full border-2 border-orange-500 border-t-transparent"></span>
+                    Locking flow...
+                  </span>
+                ) : (
+                  "Create Lock + Treasury Route"
+                )}
+              </button>
+            </div>
           </div>
 
-          <div className="bg-zinc-900 border border-zinc-700 p-5 rounded-xl">
-            <h2 className="font-semibold mb-3">Lock Flow Upgrade</h2>
+          <div className="space-y-6">
+            <div className="rounded-3xl border border-orange-500/30 bg-zinc-950 p-5 sm:p-7">
+              <div className="mb-6 flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.2em] text-orange-400">
+                    Route preview
+                  </p>
+                  <h2 className="mt-2 text-2xl font-black">
+                    {amount || "0"} USDCx flow
+                  </h2>
+                </div>
 
-            <p>2 USDCx will be locked using FlowVault Lock Vault Flow.</p>
+                <div className="rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-right">
+                  <p className="text-xs text-gray-500">Network</p>
+                  <p className="font-bold text-green-400">Testnet</p>
+                </div>
+              </div>
 
-            <p className="mt-2">
-              CreatorFlow automatically fetches the current Stacks testnet block
-              and sets the unlock block to current block + 100.
-            </p>
+              <div className="rounded-2xl border border-zinc-800 bg-black p-5">
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-gray-500">
+                  Incoming deposit
+                </p>
+                <div className="mt-3 flex items-end justify-between">
+                  <p className="text-5xl font-black">{amount || "0"}</p>
+                  <p className="font-bold text-gray-400">USDCx</p>
+                </div>
+              </div>
 
-            <p className="text-gray-400 text-sm mt-3">
-              This demonstrates both Split Vault Flow and Lock Vault Flow.
-            </p>
+              <div className="my-5 flex justify-center">
+                <div className="h-10 w-1 rounded-full bg-gradient-to-b from-orange-500 to-green-500"></div>
+              </div>
+
+              <div className="grid gap-4">
+                <div className="rounded-2xl border border-orange-500/40 bg-orange-500/10 p-4">
+                  <div className="flex items-center justify-between">
+                    <p className="font-black">Treasury route</p>
+                    <p className="text-2xl font-black">1 USDCx</p>
+                  </div>
+                  <p className="mt-2 text-sm text-gray-400">
+                    Routed to the selected treasury/contributor wallet.
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-purple-500/40 bg-purple-500/10 p-4">
+                  <div className="flex items-center justify-between">
+                    <p className="font-black">Lock vault flow</p>
+                    <p className="text-2xl font-black">2 USDCx</p>
+                  </div>
+                  <p className="mt-2 text-sm text-gray-400">
+                    Locked until current Stacks testnet block + 100.
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-green-500/40 bg-green-500/10 p-4">
+                  <div className="flex items-center justify-between">
+                    <p className="font-black">Remaining flow</p>
+                    <p className="text-2xl font-black">Available</p>
+                  </div>
+                  <p className="mt-2 text-sm text-gray-400">
+                    Remaining funds stay with the creator/team flow.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-zinc-800 bg-zinc-950 p-5 sm:p-7">
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-orange-400">
+                FlowVault primitives
+              </p>
+
+              <div className="mt-5 grid gap-3">
+                <div className="rounded-2xl border border-zinc-800 bg-black p-4">
+                  <p className="font-black">Split Vault Flow</p>
+                  <p className="mt-1 text-sm text-gray-400">
+                    Routes a fixed USDCx amount to a treasury/contributor wallet.
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-zinc-800 bg-black p-4">
+                  <p className="font-black">Lock Vault Flow</p>
+                  <p className="mt-1 text-sm text-gray-400">
+                    Locks funds until a future Stacks block height.
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-zinc-800 bg-black p-4">
+                  <p className="font-black">Programmable treasury layer</p>
+                  <p className="mt-1 text-sm text-gray-400">
+                    Combines routing + lock behavior into a creator/team treasury
+                    workflow.
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
-
-          <button
-            onClick={createTreasuryRoute}
-            disabled={isBusy}
-            className="w-full bg-orange-500 hover:bg-orange-400 disabled:opacity-60 disabled:cursor-not-allowed text-black py-4 rounded-xl font-bold transition"
-          >
-            {treasuryLoading ? (
-              <span className="flex items-center justify-center gap-2">
-                <span className="h-5 w-5 animate-spin rounded-full border-2 border-black border-t-transparent"></span>
-                Creating Treasury Route...
-              </span>
-            ) : (
-              "Create Treasury Route"
-            )}
-          </button>
-
-          <button
-            onClick={createLockRoute}
-            disabled={isBusy}
-            className="w-full border border-orange-500 hover:bg-orange-500 hover:text-black disabled:opacity-60 disabled:cursor-not-allowed text-orange-400 py-4 rounded-xl font-bold transition"
-          >
-            {lockLoading ? (
-              <span className="flex items-center justify-center gap-2">
-                <span className="h-5 w-5 animate-spin rounded-full border-2 border-orange-500 border-t-transparent"></span>
-                Creating Lock Flow...
-              </span>
-            ) : (
-              "Create Lock + Treasury Route"
-            )}
-          </button>
         </div>
       </section>
     </main>

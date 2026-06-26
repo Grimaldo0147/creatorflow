@@ -1,43 +1,54 @@
-"use client";
-
+import Image from "next/image";
 import Link from "next/link";
-import { connectWallet } from "@/lib/wallet";
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-black text-white flex items-center justify-center px-6">
-      <section className="max-w-3xl text-center">
+    <main className="min-h-screen bg-black text-white px-4 sm:px-6 py-8 sm:py-12">
+      <section className="max-w-4xl mx-auto min-h-[80vh] flex flex-col items-center justify-center text-center">
+        <div className="mb-6 flex items-center justify-center gap-3">
+          <Image
+            src="/flowvault-logo.png"
+            alt="FlowVault Logo"
+            width={44}
+            height={44}
+            className="rounded-xl"
+          />
 
-        <p className="text-orange-400 font-semibold mb-4">
-          CreatorFlow
-        </p>
+          <div className="text-left">
+            <p className="text-orange-400 text-sm font-semibold">
+              Powered by FlowVault
+            </p>
+            <p className="text-gray-400 text-sm">Stacks Testnet</p>
+          </div>
+        </div>
 
-        <h1 className="text-5xl md:text-7xl font-bold leading-tight mb-6">
-          Automate contributor payouts on Bitcoin.
+        <p className="text-orange-400 font-semibold mb-4">CreatorFlow</p>
+
+        <h1 className="text-4xl sm:text-6xl font-bold mb-6">
+          Programmable treasury routing for creators.
         </h1>
 
-        <p className="text-gray-400 text-lg mb-10">
-          Split creator revenue, reward contributors, and route USDCx payments using FlowVault.
+        <p className="text-gray-400 max-w-2xl mb-8">
+          Create treasury routes, contributor splits, and lock flows using
+          FlowVault primitives on Stacks testnet.
         </p>
 
-        <div className="flex items-center justify-center gap-4">
-
-          <button
-            onClick={connectWallet}
-            className="bg-orange-500 hover:bg-orange-400 text-black px-8 py-4 rounded-2xl font-bold transition"
-          >
-            Connect Wallet
-          </button>
-
+        <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
           <Link
             href="/create-flow"
-            className="border border-orange-500 hover:bg-orange-500 hover:text-black px-8 py-4 rounded-2xl font-bold transition"
+            className="w-full sm:w-auto bg-orange-500 hover:bg-orange-400 text-black px-6 py-4 rounded-xl font-bold transition"
           >
             Create Flow
           </Link>
 
+          <a
+            href="https://docs.flow-vault.dev"
+            target="_blank"
+            className="w-full sm:w-auto border border-orange-500 text-orange-400 hover:bg-orange-500 hover:text-black px-6 py-4 rounded-xl font-bold transition"
+          >
+            FlowVault Docs
+          </a>
         </div>
-
       </section>
     </main>
   );
