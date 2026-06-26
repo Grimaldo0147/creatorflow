@@ -5,6 +5,39 @@ export function isValidStacksAddress(address: string) {
 const FLOWVAULT_ADDRESS = "STD7QG84VQQ0C35SZM2EYTHZV4M8FQ0R7YNSQWPD";
 const FLOWVAULT_NAME = "flowvault-v2";
 
+function normalizeTxId(rawTxId: string | undefined) {
+  if (!rawTxId) return "";
+
+  return rawTxId.startsWith("0x") ? rawTxId : `0x${rawTxId}`;
+}
+
+function extractTxId(response: any) {
+  const rawTxId =
+    response?.txid ||
+    response?.txId ||
+    response?.transactionHash ||
+    response?.tx_id ||
+    response?.result?.txid ||
+    response?.result?.txId ||
+    response?.result?.transactionHash;
+
+  return normalizeTxId(rawTxId);
+}
+
+export async function getCurrentTestnetBlockHeight() {
+  const response = await fetch(
+    "https://api.testnet.hiro.so/extended/v1/block?limit=1"
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch current testnet block height");
+  }
+
+  const data = await response.json();
+
+  return data.results[0].height;
+}
+
 export async function setRoutingRules(splitAddress: string) {
   const { request } = await import("@stacks/connect");
   const { principalCV, someCV, uintCV } = await import("@stacks/transactions");
@@ -21,5 +54,38 @@ export async function setRoutingRules(splitAddress: string) {
     network: "testnet",
   });
 
-  return response?.txid || response?.txId || response?.transactionHash;
+  console.log("Treasury route tx response:", response);
+
+  return extractTxId(response);
+}
+
+export async function setSplitAndLockRules(splitAddress: string) {
+  const { request } = await import("@stacks/connect");
+  const { principalCV, someCV, uintCV } = await import("@stacks/transactions");
+
+  const currentBlock = await getCurrentTestnetBlockHeight();
+  const futureBlock = currentBlock + 100;
+
+  console.log("Current testnet block:", currentBlock);
+  console.log("Future lock block:", futureBlock);
+
+  const response: any = await request("stx_callContract", {
+    contract: `${FLOWVAULT_ADDRESS}.${FLOWVAULT_NAME}`,
+    functionName: "set-routing-rules",
+    functionArgs: [
+      uintCV(2),
+      uintCV(futureBlock),
+      someCV(principalCV(splitAddress.trim())),
+      uintCV(1),
+    ],
+    network: "testnet",
+  });
+
+  console.log("Split + lock tx response:", response);
+
+  return {
+    txId: extractTxId(response),
+    currentBlock,
+    futureBlock,
+  };
 }

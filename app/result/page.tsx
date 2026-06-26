@@ -8,6 +8,11 @@ function ResultContent() {
 
   const amount = Number(searchParams.get("amount") || 10);
   const txId = searchParams.get("txId") || "";
+  const primitive = searchParams.get("primitive") || "treasury";
+  const currentBlock = searchParams.get("currentBlock") || "";
+  const futureBlock = searchParams.get("futureBlock") || "";
+
+  const isLockFlow = primitive === "split-lock";
 
   const explorerLink = txId
     ? `https://explorer.hiro.so/txid/${txId}?chain=testnet`
@@ -22,18 +27,19 @@ function ResultContent() {
           </div>
 
           <h1 className="text-3xl sm:text-4xl font-bold text-green-400 mb-3">
-            Flow Created Successfully
+            {isLockFlow ? "Lock + Treasury Route Created" : "Treasury Route Created"}
           </h1>
 
           <p className="text-sm sm:text-base text-gray-400">
-            CreatorFlow split routing rule was created using FlowVault on
-            Stacks testnet.
+            {isLockFlow
+              ? "CreatorFlow created a split + lock routing rule using FlowVault on Stacks testnet."
+              : "CreatorFlow created a treasury/contributor routing rule using FlowVault on Stacks testnet."}
           </p>
         </div>
 
         <div className="bg-zinc-900 border border-zinc-700 p-5 sm:p-6 rounded-2xl">
           <h2 className="text-xl sm:text-2xl font-bold mb-4">
-            Flow Summary
+            Treasury Routing Summary
           </h2>
 
           <div className="space-y-4">
@@ -43,28 +49,78 @@ function ResultContent() {
             </div>
 
             <div className="bg-black border border-zinc-800 p-4 rounded-xl">
-              <p className="text-orange-400 font-semibold">Routing Action</p>
+              <p className="text-orange-400 font-semibold">Treasury Route</p>
               <p className="text-sm sm:text-base">
-                1 USDCx routed to the selected contributor wallet.
+                1 USDCx routes to the selected Treasury / Contributor wallet.
+              </p>
+            </div>
+
+            <div className="bg-black border border-zinc-800 p-4 rounded-xl">
+              <p className="text-orange-400 font-semibold">Remaining Flow</p>
+              <p className="text-sm sm:text-base">
+                Remaining funds stay with the creator/team flow.
               </p>
             </div>
           </div>
         </div>
 
+        {isLockFlow && (
+          <div className="bg-zinc-900 border border-zinc-700 p-5 sm:p-6 rounded-2xl">
+            <h2 className="text-xl sm:text-2xl font-bold mb-4">
+              Lock Flow Summary
+            </h2>
+
+            <div className="space-y-4">
+              <div className="bg-black border border-zinc-800 p-4 rounded-xl">
+                <p className="text-orange-400 font-semibold">Lock Amount</p>
+                <p className="text-sm sm:text-base">2 USDCx locked</p>
+              </div>
+
+              <div className="bg-black border border-zinc-800 p-4 rounded-xl">
+                <p className="text-orange-400 font-semibold">Current Block</p>
+                <p className="text-sm sm:text-base">
+                  {currentBlock || "Fetched from Hiro testnet API"}
+                </p>
+              </div>
+
+              <div className="bg-black border border-zinc-800 p-4 rounded-xl">
+                <p className="text-orange-400 font-semibold">Unlock Block</p>
+                <p className="text-sm sm:text-base">
+                  {futureBlock || "Current block + 100"}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="bg-zinc-900 border border-zinc-700 p-5 sm:p-6 rounded-2xl">
           <h2 className="text-xl sm:text-2xl font-bold mb-4">
-            FlowVault Primitive Used
+            FlowVault Primitives Used
           </h2>
 
-          <div className="bg-black border border-zinc-800 p-4 rounded-xl">
-            <p className="text-orange-400 font-semibold">
-              Split Vault Flow
-            </p>
+          <div className="space-y-4">
+            <div className="bg-black border border-zinc-800 p-4 rounded-xl">
+              <p className="text-orange-400 font-semibold">
+                Split Vault Flow + Treasury Routing Layer
+              </p>
 
-            <p className="text-sm sm:text-base text-gray-300">
-              CreatorFlow uses FlowVault routing rules to automatically route
-              contributor payouts on Bitcoin.
-            </p>
+              <p className="text-sm sm:text-base text-gray-300">
+                CreatorFlow uses FlowVault Split Vault Flow as the base primitive,
+                then applies a treasury routing experience for teams, creators,
+                and contributor payouts.
+              </p>
+            </div>
+
+            {isLockFlow && (
+              <div className="bg-black border border-zinc-800 p-4 rounded-xl">
+                <p className="text-orange-400 font-semibold">Lock Vault Flow</p>
+
+                <p className="text-sm sm:text-base text-gray-300">
+                  CreatorFlow automatically fetches the current Stacks testnet
+                  block and sets a future unlock block for locked funds.
+                </p>
+              </div>
+            )}
           </div>
         </div>
 
