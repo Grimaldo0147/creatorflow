@@ -15,12 +15,19 @@ export default function CreateFlow() {
   const [creator, setCreator] = useState("");
   const [treasury, setTreasury] = useState("");
   const [designer, setDesigner] = useState("");
-  const [amount, setAmount] = useState("10");
+  const [amount, setAmount] = useState("50");
+  const [treasuryAmount, setTreasuryAmount] = useState("5");
+  const [lockAmount, setLockAmount] = useState("10");
   const [walletAddress, setWalletAddress] = useState("");
   const [txStatus, setTxStatus] = useState("");
 
   const [treasuryLoading, setTreasuryLoading] = useState(false);
   const [lockLoading, setLockLoading] = useState(false);
+
+  const depositAmount = Number(amount || 0);
+  const treasuryFlow = Number(treasuryAmount || 0);
+  const lockFlow = Number(lockAmount || 0);
+  const remainingFlow = Math.max(depositAmount - treasuryFlow - lockFlow, 0);
 
   const isBusy = treasuryLoading || lockLoading;
 
@@ -45,6 +52,21 @@ export default function CreateFlow() {
       return false;
     }
 
+    if (depositAmount <= 0) {
+      alert("Enter a valid flow amount.");
+      return false;
+    }
+
+    if (treasuryFlow <= 0) {
+      alert("Enter a valid treasury route amount.");
+      return false;
+    }
+
+    if (treasuryFlow + lockFlow > depositAmount) {
+      alert("Treasury route + lock amount cannot exceed the flow amount.");
+      return false;
+    }
+
     return true;
   };
 
@@ -55,7 +77,7 @@ export default function CreateFlow() {
       setTreasuryLoading(true);
       setTxStatus("Waiting for wallet approval...");
 
-      const txId = await setRoutingRules(treasury);
+      const txId = await setRoutingRules(treasury, treasuryFlow);
 
       if (!txId) {
         setTxStatus("Transaction submitted, but no transaction ID was returned.");
@@ -65,7 +87,9 @@ export default function CreateFlow() {
 
       setTxStatus("Treasury route submitted successfully.");
 
-      router.push(`/result?amount=${amount}&txId=${txId}&primitive=treasury`);
+      router.push(
+        `/result?amount=${amount}&txId=${txId}&primitive=treasury`
+      );
     } catch (error) {
       console.error(error);
       setTxStatus("Treasury route failed. Please try again.");
@@ -78,13 +102,21 @@ export default function CreateFlow() {
   const createLockRoute = async () => {
     if (!validateTreasuryAddress()) return;
 
+    if (lockFlow <= 0) {
+      alert("Enter a valid lock amount.");
+      return;
+    }
+
     try {
       setLockLoading(true);
       setTxStatus("Fetching current Stacks testnet block...");
-
       setTxStatus("Waiting for wallet approval...");
 
-      const result = await setSplitAndLockRules(treasury);
+      const result = await setSplitAndLockRules(
+        treasury,
+        lockFlow,
+        treasuryFlow
+      );
 
       if (!result.txId) {
         setTxStatus("Transaction submitted, but no transaction ID was returned.");
@@ -147,8 +179,8 @@ export default function CreateFlow() {
             <div className="mb-6">
               <h2 className="text-2xl font-black">Configure route</h2>
               <p className="mt-2 text-sm text-gray-400">
-                Enter the treasury/contributor wallet that receives the routed
-                USDCx flow.
+                Enter the treasury/contributor wallet and choose how much should
+                route, lock, and remain available.
               </p>
             </div>
 
@@ -175,9 +207,23 @@ export default function CreateFlow() {
               />
 
               <input
-                placeholder="Flow amount"
+                placeholder="Total flow amount"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
+                className="w-full rounded-2xl border border-zinc-800 bg-black p-4 text-sm outline-none transition focus:border-orange-500"
+              />
+
+              <input
+                placeholder="Treasury route amount"
+                value={treasuryAmount}
+                onChange={(e) => setTreasuryAmount(e.target.value)}
+                className="w-full rounded-2xl border border-zinc-800 bg-black p-4 text-sm outline-none transition focus:border-orange-500"
+              />
+
+              <input
+                placeholder="Lock vault amount"
+                value={lockAmount}
+                onChange={(e) => setLockAmount(e.target.value)}
                 className="w-full rounded-2xl border border-zinc-800 bg-black p-4 text-sm outline-none transition focus:border-orange-500"
               />
             </div>
@@ -194,14 +240,7 @@ export default function CreateFlow() {
                 disabled={isBusy}
                 className="rounded-2xl bg-orange-500 px-5 py-4 font-black text-black transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {treasuryLoading ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <span className="h-5 w-5 animate-spin rounded-full border-2 border-black border-t-transparent"></span>
-                    Running route...
-                  </span>
-                ) : (
-                  "Create Treasury Route"
-                )}
+                {treasuryLoading ? "Running route..." : "Create Treasury Route"}
               </button>
 
               <button
@@ -209,14 +248,7 @@ export default function CreateFlow() {
                 disabled={isBusy}
                 className="rounded-2xl border border-orange-500 px-5 py-4 font-black text-orange-400 transition hover:bg-orange-500 hover:text-black disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {lockLoading ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <span className="h-5 w-5 animate-spin rounded-full border-2 border-orange-500 border-t-transparent"></span>
-                    Locking flow...
-                  </span>
-                ) : (
-                  "Create Lock + Treasury Route"
-                )}
+                {lockLoading ? "Locking flow..." : "Create Lock + Treasury Route"}
               </button>
             </div>
           </div>
@@ -229,7 +261,7 @@ export default function CreateFlow() {
                     Route preview
                   </p>
                   <h2 className="mt-2 text-2xl font-black">
-                    {amount || "0"} USDCx flow
+                    {depositAmount} USDCx flow
                   </h2>
                 </div>
 
@@ -244,7 +276,7 @@ export default function CreateFlow() {
                   Incoming deposit
                 </p>
                 <div className="mt-3 flex items-end justify-between">
-                  <p className="text-5xl font-black">{amount || "0"}</p>
+                  <p className="text-5xl font-black">{depositAmount}</p>
                   <p className="font-bold text-gray-400">USDCx</p>
                 </div>
               </div>
@@ -255,9 +287,9 @@ export default function CreateFlow() {
 
               <div className="grid gap-4">
                 <div className="rounded-2xl border border-orange-500/40 bg-orange-500/10 p-4">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-4">
                     <p className="font-black">Treasury route</p>
-                    <p className="text-2xl font-black">1 USDCx</p>
+                    <p className="text-2xl font-black">{treasuryFlow} USDCx</p>
                   </div>
                   <p className="mt-2 text-sm text-gray-400">
                     Routed to the selected treasury/contributor wallet.
@@ -265,9 +297,9 @@ export default function CreateFlow() {
                 </div>
 
                 <div className="rounded-2xl border border-purple-500/40 bg-purple-500/10 p-4">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-4">
                     <p className="font-black">Lock vault flow</p>
-                    <p className="text-2xl font-black">2 USDCx</p>
+                    <p className="text-2xl font-black">{lockFlow} USDCx</p>
                   </div>
                   <p className="mt-2 text-sm text-gray-400">
                     Locked until current Stacks testnet block + 100.
@@ -275,9 +307,9 @@ export default function CreateFlow() {
                 </div>
 
                 <div className="rounded-2xl border border-green-500/40 bg-green-500/10 p-4">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-4">
                     <p className="font-black">Remaining flow</p>
-                    <p className="text-2xl font-black">Available</p>
+                    <p className="text-2xl font-black">{remainingFlow} USDCx</p>
                   </div>
                   <p className="mt-2 text-sm text-gray-400">
                     Remaining funds stay with the creator/team flow.
@@ -295,7 +327,7 @@ export default function CreateFlow() {
                 <div className="rounded-2xl border border-zinc-800 bg-black p-4">
                   <p className="font-black">Split Vault Flow</p>
                   <p className="mt-1 text-sm text-gray-400">
-                    Routes a fixed USDCx amount to a treasury/contributor wallet.
+                    Routes USDCx to a treasury/contributor wallet.
                   </p>
                 </div>
 
@@ -309,8 +341,8 @@ export default function CreateFlow() {
                 <div className="rounded-2xl border border-zinc-800 bg-black p-4">
                   <p className="font-black">Programmable treasury layer</p>
                   <p className="mt-1 text-sm text-gray-400">
-                    Combines routing + lock behavior into a creator/team treasury
-                    workflow.
+                    Combines routing + lock behavior into a creator/team
+                    treasury workflow.
                   </p>
                 </div>
               </div>
