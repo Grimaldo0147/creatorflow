@@ -1,36 +1,76 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CreatorFlow
 
-## Getting Started
+CreatorFlow is a FlowVault-powered Bitcoin payment routing app built on Stacks testnet.
 
-First, run the development server:
+It automates contributor payout splits using programmable USDCx routing rules and provides real on-chain transaction verification through Hiro Explorer.
+
+## Features
+
+* Connect Stacks wallet (Leather)
+* Create automated contributor payout flows
+* Split Vault Flow integration
+* Real Stacks testnet transactions
+* Hiro Explorer transaction proof
+* Responsive UI
+* Mobile-friendly design
+* Loading states and transaction feedback
+
+## Built With
+
+* Next.js 16
+* TypeScript
+* Tailwind CSS
+* Stacks Connect
+* FlowVault
+* Hiro Explorer
+* Stacks Testnet
+
+## FlowVault Primitive Used
+
+### Split Vault Flow
+
+CreatorFlow uses FlowVault routing rules to automatically route part of a creator payment to a contributor wallet.
+
+## How It Works
+
+1. Connect wallet
+2. Enter contributor wallet
+3. Create split flow
+4. Approve transaction
+5. View verified transaction on Hiro Explorer
+
+## Local Development
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Run development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Build for production:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm run build
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Live Demo
 
-## Learn More
+Add your Vercel deployment link here after deployment.
 
-To learn more about Next.js, take a look at the following resources:
+## GitHub Repository
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+https://github.com/Grimaldo0147/creatorflow
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Testnet Transaction Proof
 
-## Deploy on Vercel
+Transactions are verified on Hiro Explorer using Stacks testnet.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Author
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Grimaldo.btc
