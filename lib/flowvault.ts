@@ -7,7 +7,6 @@ const FLOWVAULT_NAME = "flowvault-v2";
 
 function normalizeTxId(rawTxId: string | undefined) {
   if (!rawTxId) return "";
-
   return rawTxId.startsWith("0x") ? rawTxId : `0x${rawTxId}`;
 }
 
@@ -29,20 +28,15 @@ export async function getWalletAddress() {
 
   const response: any = await connect();
 
-  console.log("Wallet connect response:", response);
-
   const address =
-    response?.addresses?.find((item: any) => item.symbol === "STX")
-      ?.address ||
+    response?.addresses?.find((item: any) => item.symbol === "STX")?.address ||
     response?.addresses?.[0]?.address ||
     response?.result?.addresses?.find((item: any) => item.symbol === "STX")
       ?.address ||
     response?.result?.addresses?.[0]?.address ||
     "";
 
-  if (!address) {
-    throw new Error("No wallet address returned");
-  }
+  if (!address) throw new Error("No wallet address returned");
 
   return address;
 }
@@ -57,11 +51,13 @@ export async function getCurrentTestnetBlockHeight() {
   }
 
   const data = await response.json();
-
   return data.results[0].height;
 }
 
-export async function setRoutingRules(splitAddress: string) {
+export async function setRoutingRules(
+  splitAddress: string,
+  splitAmount: number
+) {
   const { request } = await import("@stacks/connect");
   const { principalCV, someCV, uintCV } = await import("@stacks/transactions");
 
@@ -72,39 +68,36 @@ export async function setRoutingRules(splitAddress: string) {
       uintCV(0),
       uintCV(0),
       someCV(principalCV(splitAddress.trim())),
-      uintCV(1),
+      uintCV(splitAmount),
     ],
     network: "testnet",
   });
 
-  console.log("Treasury route tx response:", response);
-
   return extractTxId(response);
 }
 
-export async function setSplitAndLockRules(splitAddress: string) {
+export async function setSplitAndLockRules(
+  splitAddress: string,
+  lockAmount: number,
+  splitAmount: number
+) {
   const { request } = await import("@stacks/connect");
   const { principalCV, someCV, uintCV } = await import("@stacks/transactions");
 
   const currentBlock = await getCurrentTestnetBlockHeight();
   const futureBlock = currentBlock + 100;
 
-  console.log("Current testnet block:", currentBlock);
-  console.log("Future lock block:", futureBlock);
-
   const response: any = await request("stx_callContract", {
     contract: `${FLOWVAULT_ADDRESS}.${FLOWVAULT_NAME}`,
     functionName: "set-routing-rules",
     functionArgs: [
-      uintCV(2),
+      uintCV(lockAmount),
       uintCV(futureBlock),
       someCV(principalCV(splitAddress.trim())),
-      uintCV(1),
+      uintCV(splitAmount),
     ],
     network: "testnet",
   });
-
-  console.log("Split + lock tx response:", response);
 
   return {
     txId: extractTxId(response),
