@@ -25,14 +25,24 @@ function extractTxId(response: any) {
 }
 
 export async function getWalletAddress() {
-  const { request } = await import("@stacks/connect");
+  const { connect } = await import("@stacks/connect");
 
-  const response: any = await request("stx_getAddresses");
+  const response: any = await connect();
+
+  console.log("Wallet connect response:", response);
 
   const address =
+    response?.addresses?.find((item: any) => item.symbol === "STX")
+      ?.address ||
     response?.addresses?.[0]?.address ||
+    response?.result?.addresses?.find((item: any) => item.symbol === "STX")
+      ?.address ||
     response?.result?.addresses?.[0]?.address ||
     "";
+
+  if (!address) {
+    throw new Error("No wallet address returned");
+  }
 
   return address;
 }
