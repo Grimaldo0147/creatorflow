@@ -88,7 +88,9 @@ export default function CreateFlow() {
       setTxStatus("Treasury route submitted successfully.");
 
       router.push(
-        `/result?amount=${amount}&txId=${txId}&primitive=treasury`
+        `/result?amount=${amount}&treasuryAmount=${treasuryAmount}&lockAmount=0&remainingAmount=${
+          depositAmount - treasuryFlow
+        }&txId=${txId}&primitive=treasury`
       );
     } catch (error) {
       console.error(error);
@@ -127,7 +129,7 @@ export default function CreateFlow() {
       setTxStatus("Lock + Treasury route submitted successfully.");
 
       router.push(
-        `/result?amount=${amount}&txId=${result.txId}&currentBlock=${result.currentBlock}&futureBlock=${result.futureBlock}&primitive=split-lock`
+        `/result?amount=${amount}&treasuryAmount=${treasuryAmount}&lockAmount=${lockAmount}&remainingAmount=${remainingFlow}&txId=${result.txId}&currentBlock=${result.currentBlock}&futureBlock=${result.futureBlock}&primitive=split-lock`
       );
     } catch (error) {
       console.error(error);
