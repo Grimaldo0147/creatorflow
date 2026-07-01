@@ -7,6 +7,10 @@ function ResultContent() {
   const searchParams = useSearchParams();
 
   const amount = Number(searchParams.get("amount") || 10);
+  const treasuryAmount = Number(searchParams.get("treasuryAmount") || 1);
+  const lockAmount = Number(searchParams.get("lockAmount") || 0);
+  const remainingAmount = Number(searchParams.get("remainingAmount") || 0);
+
   const txId = searchParams.get("txId") || "";
   const primitive = searchParams.get("primitive") || "treasury";
   const currentBlock = searchParams.get("currentBlock") || "";
@@ -75,7 +79,7 @@ function ResultContent() {
                   <p className="text-xs font-bold uppercase tracking-[0.18em] text-orange-400">
                     Treasury route
                   </p>
-                  <p className="mt-2 text-3xl font-black">1</p>
+                  <p className="mt-2 text-3xl font-black">{treasuryAmount}</p>
                   <p className="text-sm text-gray-400">USDCx routed</p>
                 </div>
 
@@ -84,12 +88,24 @@ function ResultContent() {
                     Lock vault
                   </p>
                   <p className="mt-2 text-3xl font-black">
-                    {isLockFlow ? "2" : "—"}
+                    {isLockFlow ? lockAmount : "—"}
                   </p>
                   <p className="text-sm text-gray-400">
                     {isLockFlow ? "USDCx locked" : "Not used"}
                   </p>
                 </div>
+              </div>
+
+              <div className="mt-4 rounded-2xl border border-green-500/30 bg-green-500/10 p-4">
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-green-400">
+                  Remaining flow
+                </p>
+                <p className="mt-2 text-3xl font-black">
+                  {remainingAmount} USDCx
+                </p>
+                <p className="text-sm text-gray-400">
+                  Remaining funds stay with the creator/team flow.
+                </p>
               </div>
             </div>
 
