@@ -52,7 +52,7 @@ function ResultContent() {
         <div className="grid gap-6 lg:grid-cols-[1fr_0.9fr]">
           <div className="space-y-6">
             <div className="rounded-3xl border border-green-500/30 bg-zinc-950 p-5 sm:p-7 shadow-2xl">
-              <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-green-500/10 text-4xl">
+              <div className="mb-5 flex h-16 w-16 animate-bounce items-center justify-center rounded-2xl border border-green-500/40 bg-green-500/10 text-4xl shadow-lg shadow-green-500/10">
                 ✅
               </div>
 
@@ -69,7 +69,7 @@ function ResultContent() {
               <div className="mt-6 grid gap-4 sm:grid-cols-3">
                 <div className="rounded-2xl border border-zinc-800 bg-black p-4">
                   <p className="text-xs font-bold uppercase tracking-[0.18em] text-gray-500">
-                    Flow amount
+                    Flow Amount
                   </p>
                   <p className="mt-2 text-3xl font-black">{amount}</p>
                   <p className="text-sm text-gray-400">USDCx</p>
@@ -77,7 +77,7 @@ function ResultContent() {
 
                 <div className="rounded-2xl border border-orange-500/40 bg-orange-500/10 p-4">
                   <p className="text-xs font-bold uppercase tracking-[0.18em] text-orange-400">
-                    Treasury route
+                    Treasury Route
                   </p>
                   <p className="mt-2 text-3xl font-black">{treasuryAmount}</p>
                   <p className="text-sm text-gray-400">USDCx routed</p>
@@ -85,7 +85,7 @@ function ResultContent() {
 
                 <div className="rounded-2xl border border-purple-500/40 bg-purple-500/10 p-4">
                   <p className="text-xs font-bold uppercase tracking-[0.18em] text-purple-300">
-                    Lock vault
+                    Lock Vault
                   </p>
                   <p className="mt-2 text-3xl font-black">
                     {isLockFlow ? lockAmount : "—"}
@@ -98,7 +98,7 @@ function ResultContent() {
 
               <div className="mt-4 rounded-2xl border border-green-500/30 bg-green-500/10 p-4">
                 <p className="text-xs font-bold uppercase tracking-[0.18em] text-green-400">
-                  Remaining flow
+                  Remaining Flow
                 </p>
                 <p className="mt-2 text-3xl font-black">
                   {remainingAmount} USDCx
@@ -112,7 +112,7 @@ function ResultContent() {
             {isLockFlow && (
               <div className="rounded-3xl border border-purple-500/30 bg-zinc-950 p-5 sm:p-7">
                 <p className="text-xs font-bold uppercase tracking-[0.2em] text-purple-300">
-                  Lock flow summary
+                  Lock Flow Summary
                 </p>
 
                 <h2 className="mt-2 text-2xl font-black">
@@ -126,14 +126,18 @@ function ResultContent() {
 
                 <div className="mt-5 grid gap-4 sm:grid-cols-2">
                   <div className="rounded-2xl border border-zinc-800 bg-black p-4">
-                    <p className="text-gray-500">Current Block</p>
+                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-gray-500">
+                      Current Block
+                    </p>
                     <p className="mt-2 break-all text-2xl font-black">
                       {currentBlock || "Fetched from Hiro API"}
                     </p>
                   </div>
 
                   <div className="rounded-2xl border border-zinc-800 bg-black p-4">
-                    <p className="text-gray-500">Unlock Block</p>
+                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-gray-500">
+                      Unlock Block
+                    </p>
                     <p className="mt-2 break-all text-2xl font-black">
                       {futureBlock || "Current block + 100"}
                     </p>
@@ -179,7 +183,7 @@ function ResultContent() {
           <aside className="space-y-6">
             <div className="rounded-3xl border border-zinc-800 bg-zinc-950 p-5 sm:p-7">
               <p className="text-xs font-bold uppercase tracking-[0.2em] text-orange-400">
-                Transaction proof
+                Transaction Proof
               </p>
 
               <h2 className="mt-2 text-2xl font-black">
@@ -211,7 +215,7 @@ function ResultContent() {
 
             <div className="rounded-3xl border border-zinc-800 bg-zinc-950 p-5 sm:p-7">
               <p className="text-xs font-bold uppercase tracking-[0.2em] text-gray-500">
-                Route type
+                Route Type
               </p>
 
               <p className="mt-3 text-3xl font-black">
@@ -220,7 +224,7 @@ function ResultContent() {
 
               <p className="mt-3 text-sm text-gray-400">
                 {isLockFlow
-                  ? "Best demo flow: shows composability across split routing and lock behavior."
+                  ? "Shows composability across split routing and lock behavior."
                   : "Fast treasury route using FlowVault Split Vault Flow."}
               </p>
             </div>
