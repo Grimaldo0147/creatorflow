@@ -36,7 +36,9 @@ export async function getWalletAddress() {
     response?.result?.addresses?.[0]?.address ||
     "";
 
-  if (!address) throw new Error("No wallet address returned");
+  if (!address) {
+    throw new Error("No wallet address returned");
+  }
 
   return address;
 }
@@ -73,7 +75,13 @@ export async function setRoutingRules(
     network: "testnet",
   });
 
-  return extractTxId(response);
+  const txId = extractTxId(response);
+
+  if (!txId) {
+    throw new Error("Transaction submitted, but no txId was returned.");
+  }
+
+  return txId;
 }
 
 export async function setSplitAndLockRules(
@@ -99,8 +107,14 @@ export async function setSplitAndLockRules(
     network: "testnet",
   });
 
+  const txId = extractTxId(response);
+
+  if (!txId) {
+    throw new Error("Transaction submitted, but no txId was returned.");
+  }
+
   return {
-    txId: extractTxId(response),
+    txId,
     currentBlock,
     futureBlock,
   };
