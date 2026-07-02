@@ -6,17 +6,19 @@ import { useSearchParams } from "next/navigation";
 function ResultContent() {
   const searchParams = useSearchParams();
 
-  const amount = Number(searchParams.get("amount") || 10);
-  const treasuryAmount = Number(searchParams.get("treasuryAmount") || 1);
+  const amount = Number(searchParams.get("amount") || 0);
+  const treasuryAmount = Number(searchParams.get("treasuryAmount") || 0);
   const lockAmount = Number(searchParams.get("lockAmount") || 0);
   const remainingAmount = Number(searchParams.get("remainingAmount") || 0);
 
   const txId = searchParams.get("txId") || "";
   const primitive = searchParams.get("primitive") || "treasury";
+
   const currentBlock = searchParams.get("currentBlock") || "";
   const futureBlock = searchParams.get("futureBlock") || "";
 
   const isLockFlow = primitive === "split-lock";
+  const isDepositFlow = primitive === "deposit";
 
   const explorerLink = txId
     ? `https://explorer.hiro.so/txid/${txId}?chain=testnet`
@@ -32,7 +34,9 @@ function ResultContent() {
             </div>
 
             <h1 className="text-4xl sm:text-6xl font-black tracking-tight">
-              {isLockFlow
+              {isDepositFlow
+                ? "USDCx Deposit Executed"
+                : isLockFlow
                 ? "Programmable Lock Flow Created"
                 : "Treasury Route Created"}
             </h1>
@@ -64,7 +68,9 @@ function ResultContent() {
               </h2>
 
               <p className="mt-3 text-gray-400">
-                {isLockFlow
+                {isDepositFlow
+                  ? "Testnet USDCx was deposited into the programmable treasury flow."
+                  : isLockFlow
                   ? "Split Vault Flow and Lock Vault Flow were combined into one programmable treasury coordination flow."
                   : "Split Vault Flow was used to create a programmable treasury route."}
               </p>
@@ -100,11 +106,13 @@ function ResultContent() {
                   </p>
 
                   <p className="mt-2 text-3xl font-black">
-                    {isLockFlow ? lockAmount : "—"}
+                    {isLockFlow || isDepositFlow ? lockAmount : "—"}
                   </p>
 
                   <p className="text-sm text-gray-400">
-                    {isLockFlow ? "USDCx locked" : "Not used"}
+                    {isLockFlow || isDepositFlow
+                      ? "USDCx locked"
+                      : "Not used"}
                   </p>
                 </div>
               </div>
@@ -124,7 +132,7 @@ function ResultContent() {
               </div>
             </div>
 
-            {isLockFlow && (
+            {(isLockFlow || isDepositFlow) && (
               <div className="rounded-3xl border border-purple-500/30 bg-zinc-950 p-5 sm:p-7">
                 <p className="text-xs font-bold uppercase tracking-[0.2em] text-purple-300">
                   Lock Flow Details
@@ -165,35 +173,45 @@ function ResultContent() {
 
             <div className="rounded-3xl border border-zinc-800 bg-zinc-950 p-5 sm:p-7">
               <p className="text-xs font-bold uppercase tracking-[0.2em] text-orange-400">
-                FlowVault primitives used
+                FlowVault actions used
               </p>
 
               <div className="mt-5 grid gap-4">
                 <div className="rounded-2xl border border-orange-500/30 bg-orange-500/10 p-4">
-                  <p className="font-black">Split Vault Flow</p>
+                  <p className="font-black">1. Treasury Routing</p>
 
                   <p className="mt-1 text-sm text-gray-300">
-                    Routes treasury allocations dynamically.
+                    Created programmable treasury split rules.
                   </p>
                 </div>
 
-                {isLockFlow && (
+                {(isLockFlow || isDepositFlow) && (
                   <div className="rounded-2xl border border-purple-500/30 bg-purple-500/10 p-4">
-                    <p className="font-black">Lock Vault Flow</p>
+                    <p className="font-black">2. Lock Vault Flow</p>
 
                     <p className="mt-1 text-sm text-gray-300">
-                      Locks treasury reserves until a future unlock block.
+                      Created programmable reserve lock behavior.
+                    </p>
+                  </div>
+                )}
+
+                {isDepositFlow && (
+                  <div className="rounded-2xl border border-green-500/30 bg-green-500/10 p-4">
+                    <p className="font-black">3. USDCx Deposit Execution</p>
+
+                    <p className="mt-1 text-sm text-gray-300">
+                      Testnet USDCx deposit executed through FlowVault.
                     </p>
                   </div>
                 )}
 
                 <div className="rounded-2xl border border-zinc-800 bg-black p-4">
                   <p className="font-black">
-                    Explorer-verifiable transaction flow
+                    Explorer-verifiable transaction
                   </p>
 
                   <p className="mt-1 text-sm text-gray-400">
-                    User signs a real Stacks testnet transaction which can be
+                    User signed a real Stacks testnet transaction which can be
                     verified publicly on Hiro Explorer.
                   </p>
                 </div>
@@ -236,15 +254,21 @@ function ResultContent() {
 
             <div className="rounded-3xl border border-zinc-800 bg-zinc-950 p-5 sm:p-7">
               <p className="text-xs font-bold uppercase tracking-[0.2em] text-gray-500">
-                Route Type
+                Flow Type
               </p>
 
               <p className="mt-3 text-3xl font-black">
-                {isLockFlow ? "Split + Lock Flow" : "Treasury Split Flow"}
+                {isDepositFlow
+                  ? "USDCx Deposit"
+                  : isLockFlow
+                  ? "Split + Lock Flow"
+                  : "Treasury Split Flow"}
               </p>
 
               <p className="mt-3 text-sm text-gray-400">
-                {isLockFlow
+                {isDepositFlow
+                  ? "Real programmable treasury execution using testnet USDCx."
+                  : isLockFlow
                   ? "Combines routing and treasury reserve locking into one programmable flow."
                   : "Fast treasury allocation routing using FlowVault primitives."}
               </p>
@@ -261,7 +285,7 @@ function ResultContent() {
 
               <p className="mt-3 text-sm text-gray-400">
                 Built for the FlowVault Builder Bounty using real Stacks testnet
-                interactions.
+                wallet interactions.
               </p>
             </div>
           </aside>
