@@ -7,6 +7,7 @@ import {
   setRoutingRules,
   setSplitAndLockRules,
   getWalletAddress,
+  depositUSDCx,
 } from "@/lib/flowvault";
 
 export default function CreateFlow() {
@@ -15,21 +16,26 @@ export default function CreateFlow() {
   const [creator, setCreator] = useState("");
   const [treasury, setTreasury] = useState("");
   const [designer, setDesigner] = useState("");
-  const [amount, setAmount] = useState("50");
-  const [treasuryAmount, setTreasuryAmount] = useState("5");
-  const [lockAmount, setLockAmount] = useState("10");
+  const [amount, setAmount] = useState("5");
+  const [treasuryAmount, setTreasuryAmount] = useState("1");
+  const [lockAmount, setLockAmount] = useState("1");
   const [walletAddress, setWalletAddress] = useState("");
   const [txStatus, setTxStatus] = useState("");
 
   const [treasuryLoading, setTreasuryLoading] = useState(false);
   const [lockLoading, setLockLoading] = useState(false);
+  const [depositLoading, setDepositLoading] = useState(false);
 
   const depositAmount = Number(amount || 0);
   const treasuryFlow = Number(treasuryAmount || 0);
   const lockFlow = Number(lockAmount || 0);
-  const remainingFlow = Math.max(depositAmount - treasuryFlow - lockFlow, 0);
 
-  const isBusy = treasuryLoading || lockLoading;
+  const remainingFlow = Math.max(
+    depositAmount - treasuryFlow - lockFlow,
+    0
+  );
+
+  const isBusy = treasuryLoading || lockLoading || depositLoading;
 
   const connectWallet = async () => {
     try {
@@ -87,7 +93,7 @@ export default function CreateFlow() {
 
       const txId = await setRoutingRules(treasury, treasuryFlow);
 
-      setTxStatus("Transaction submitted successfully.");
+      setTxStatus("Treasury route submitted successfully.");
 
       router.push(
         `/result?amount=${depositAmount}&treasuryAmount=${treasuryFlow}&lockAmount=0&remainingAmount=${
@@ -132,6 +138,32 @@ export default function CreateFlow() {
       alert("Lock route failed. Use the Treasury Route if this fails.");
     } finally {
       setLockLoading(false);
+    }
+  };
+
+  const executeDeposit = async () => {
+    if (depositAmount <= 0) {
+      alert("Enter a valid deposit amount.");
+      return;
+    }
+
+    try {
+      setDepositLoading(true);
+      setTxStatus("Waiting for USDCx deposit approval...");
+
+      const txId = await depositUSDCx(depositAmount);
+
+      setTxStatus("USDCx deposit submitted successfully.");
+
+      router.push(
+        `/result?amount=${depositAmount}&treasuryAmount=${treasuryFlow}&lockAmount=${lockFlow}&remainingAmount=${remainingFlow}&txId=${txId}&primitive=deposit`
+      );
+    } catch (error) {
+      console.error(error);
+      setTxStatus("USDCx deposit failed.");
+      alert("Deposit failed. Make sure you have testnet USDCx and your wallet is on Stacks Testnet.");
+    } finally {
+      setDepositLoading(false);
     }
   };
 
@@ -267,6 +299,16 @@ export default function CreateFlow() {
                 {lockLoading ? "Waiting for wallet..." : "Create Lock + Treasury Route"}
               </button>
             </div>
+
+            <button
+              onClick={executeDeposit}
+              disabled={isBusy}
+              className="mt-4 w-full rounded-2xl bg-green-500 px-5 py-4 font-black text-black transition hover:bg-green-400 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {depositLoading
+                ? "Waiting for deposit approval..."
+                : "Deposit USDCx to Execute Flow"}
+            </button>
           </div>
 
           <div className="space-y-6">
@@ -336,29 +378,28 @@ export default function CreateFlow() {
 
             <div className="rounded-3xl border border-zinc-800 bg-zinc-950 p-5 sm:p-7">
               <p className="text-xs font-bold uppercase tracking-[0.2em] text-orange-400">
-                FlowVault primitives
+                FlowVault actions
               </p>
 
               <div className="mt-5 grid gap-3">
                 <div className="rounded-2xl border border-zinc-800 bg-black p-4">
-                  <p className="font-black">Split Vault Flow</p>
+                  <p className="font-black">1. Create routing rules</p>
                   <p className="mt-1 text-sm text-gray-400">
-                    Routes USDCx to a treasury/contributor wallet.
+                    Save split and treasury behavior on FlowVault.
                   </p>
                 </div>
 
                 <div className="rounded-2xl border border-zinc-800 bg-black p-4">
-                  <p className="font-black">Lock Vault Flow</p>
+                  <p className="font-black">2. Create lock rules</p>
                   <p className="mt-1 text-sm text-gray-400">
-                    Locks funds until a future Stacks block height.
+                    Configure locked reserves using a future Stacks block.
                   </p>
                 </div>
 
-                <div className="rounded-2xl border border-zinc-800 bg-black p-4">
-                  <p className="font-black">Wallet-triggered transaction</p>
+                <div className="rounded-2xl border border-green-500/30 bg-green-500/10 p-4">
+                  <p className="font-black">3. Deposit USDCx</p>
                   <p className="mt-1 text-sm text-gray-400">
-                    User signs a real Stacks testnet transaction, then verifies
-                    it on Hiro Explorer.
+                    Execute the flow by depositing testnet USDCx into FlowVault.
                   </p>
                 </div>
               </div>
