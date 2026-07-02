@@ -28,11 +28,13 @@ function ResultContent() {
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-green-500/30 bg-green-500/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.2em] text-green-400">
-              On-chain proof
+              Transaction Successful
             </div>
 
             <h1 className="text-4xl sm:text-6xl font-black tracking-tight">
-              {isLockFlow ? "Lock route created" : "Treasury route created"}
+              {isLockFlow
+                ? "Programmable Lock Flow Created"
+                : "Treasury Route Created"}
             </h1>
 
             <p className="mt-3 max-w-2xl text-gray-400">
@@ -45,7 +47,8 @@ function ResultContent() {
             <p className="text-xs font-bold uppercase tracking-[0.2em]">
               Status
             </p>
-            <p className="mt-1 text-2xl font-black">Submitted</p>
+
+            <p className="mt-1 text-2xl font-black">Confirmed</p>
           </div>
         </div>
 
@@ -62,7 +65,7 @@ function ResultContent() {
 
               <p className="mt-3 text-gray-400">
                 {isLockFlow
-                  ? "Split Vault Flow and Lock Vault Flow were combined into one programmable treasury route."
+                  ? "Split Vault Flow and Lock Vault Flow were combined into one programmable treasury coordination flow."
                   : "Split Vault Flow was used to create a programmable treasury route."}
               </p>
 
@@ -71,7 +74,9 @@ function ResultContent() {
                   <p className="text-xs font-bold uppercase tracking-[0.18em] text-gray-500">
                     Flow Amount
                   </p>
+
                   <p className="mt-2 text-3xl font-black">{amount}</p>
+
                   <p className="text-sm text-gray-400">USDCx</p>
                 </div>
 
@@ -79,17 +84,25 @@ function ResultContent() {
                   <p className="text-xs font-bold uppercase tracking-[0.18em] text-orange-400">
                     Treasury Route
                   </p>
-                  <p className="mt-2 text-3xl font-black">{treasuryAmount}</p>
-                  <p className="text-sm text-gray-400">USDCx routed</p>
+
+                  <p className="mt-2 text-3xl font-black">
+                    {treasuryAmount}
+                  </p>
+
+                  <p className="text-sm text-gray-400">
+                    USDCx routed
+                  </p>
                 </div>
 
                 <div className="rounded-2xl border border-purple-500/40 bg-purple-500/10 p-4">
                   <p className="text-xs font-bold uppercase tracking-[0.18em] text-purple-300">
                     Lock Vault
                   </p>
+
                   <p className="mt-2 text-3xl font-black">
                     {isLockFlow ? lockAmount : "—"}
                   </p>
+
                   <p className="text-sm text-gray-400">
                     {isLockFlow ? "USDCx locked" : "Not used"}
                   </p>
@@ -100,11 +113,13 @@ function ResultContent() {
                 <p className="text-xs font-bold uppercase tracking-[0.18em] text-green-400">
                   Remaining Flow
                 </p>
+
                 <p className="mt-2 text-3xl font-black">
                   {remainingAmount} USDCx
                 </p>
+
                 <p className="text-sm text-gray-400">
-                  Remaining funds stay with the creator/team flow.
+                  Remaining liquidity available for creator/team treasury usage.
                 </p>
               </div>
             </div>
@@ -112,11 +127,11 @@ function ResultContent() {
             {isLockFlow && (
               <div className="rounded-3xl border border-purple-500/30 bg-zinc-950 p-5 sm:p-7">
                 <p className="text-xs font-bold uppercase tracking-[0.2em] text-purple-300">
-                  Lock Flow Summary
+                  Lock Flow Details
                 </p>
 
                 <h2 className="mt-2 text-2xl font-black">
-                  Dynamic unlock schedule
+                  Dynamic Unlock Schedule
                 </h2>
 
                 <p className="mt-2 text-gray-400">
@@ -129,6 +144,7 @@ function ResultContent() {
                     <p className="text-xs font-bold uppercase tracking-[0.18em] text-gray-500">
                       Current Block
                     </p>
+
                     <p className="mt-2 break-all text-2xl font-black">
                       {currentBlock || "Fetched from Hiro API"}
                     </p>
@@ -138,8 +154,9 @@ function ResultContent() {
                     <p className="text-xs font-bold uppercase tracking-[0.18em] text-gray-500">
                       Unlock Block
                     </p>
+
                     <p className="mt-2 break-all text-2xl font-black">
-                      {futureBlock || "Current block + 100"}
+                      {futureBlock || "Current Block + 100"}
                     </p>
                   </div>
                 </div>
@@ -154,26 +171,30 @@ function ResultContent() {
               <div className="mt-5 grid gap-4">
                 <div className="rounded-2xl border border-orange-500/30 bg-orange-500/10 p-4">
                   <p className="font-black">Split Vault Flow</p>
+
                   <p className="mt-1 text-sm text-gray-300">
-                    Routes a fixed USDCx amount to the selected treasury or
-                    contributor wallet.
+                    Routes treasury allocations dynamically.
                   </p>
                 </div>
 
                 {isLockFlow && (
                   <div className="rounded-2xl border border-purple-500/30 bg-purple-500/10 p-4">
                     <p className="font-black">Lock Vault Flow</p>
+
                     <p className="mt-1 text-sm text-gray-300">
-                      Locks part of the flow until a future Stacks block height.
+                      Locks treasury reserves until a future unlock block.
                     </p>
                   </div>
                 )}
 
                 <div className="rounded-2xl border border-zinc-800 bg-black p-4">
-                  <p className="font-black">Treasury routing layer</p>
+                  <p className="font-black">
+                    Explorer-verifiable transaction flow
+                  </p>
+
                   <p className="mt-1 text-sm text-gray-400">
-                    CreatorFlow combines FlowVault primitives into a creator/team
-                    treasury experience.
+                    User signs a real Stacks testnet transaction which can be
+                    verified publicly on Hiro Explorer.
                   </p>
                 </div>
               </div>
@@ -219,13 +240,13 @@ function ResultContent() {
               </p>
 
               <p className="mt-3 text-3xl font-black">
-                {isLockFlow ? "Split + Lock" : "Treasury Split"}
+                {isLockFlow ? "Split + Lock Flow" : "Treasury Split Flow"}
               </p>
 
               <p className="mt-3 text-sm text-gray-400">
                 {isLockFlow
-                  ? "Shows composability across split routing and lock behavior."
-                  : "Fast treasury route using FlowVault Split Vault Flow."}
+                  ? "Combines routing and treasury reserve locking into one programmable flow."
+                  : "Fast treasury allocation routing using FlowVault primitives."}
               </p>
             </div>
 
@@ -235,12 +256,12 @@ function ResultContent() {
               </p>
 
               <p className="mt-3 text-3xl font-black text-green-400">
-                Testnet
+                Stacks Testnet
               </p>
 
               <p className="mt-3 text-sm text-gray-400">
-                Built for FlowVault bounty using real Stacks testnet
-                transactions.
+                Built for the FlowVault Builder Bounty using real Stacks testnet
+                interactions.
               </p>
             </div>
           </aside>
@@ -252,7 +273,13 @@ function ResultContent() {
 
 export default function ResultPage() {
   return (
-    <Suspense fallback={<div className="bg-black p-10 text-white">Loading...</div>}>
+    <Suspense
+      fallback={
+        <div className="bg-black p-10 text-white">
+          Loading transaction result...
+        </div>
+      }
+    >
       <ResultContent />
     </Suspense>
   );
