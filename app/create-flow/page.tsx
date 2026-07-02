@@ -27,7 +27,11 @@ export default function CreateFlow() {
   const depositAmount = Number(amount || 0);
   const treasuryFlow = Number(treasuryAmount || 0);
   const lockFlow = Number(lockAmount || 0);
-  const remainingFlow = Math.max(depositAmount - treasuryFlow - lockFlow, 0);
+
+  const remainingFlow = Math.max(
+    depositAmount - treasuryFlow - lockFlow,
+    0
+  );
 
   const isBusy = treasuryLoading || lockLoading;
 
@@ -53,7 +57,7 @@ export default function CreateFlow() {
     }
 
     if (depositAmount <= 0) {
-      alert("Enter a valid flow amount.");
+      alert("Enter a valid total flow amount.");
       return false;
     }
 
@@ -62,8 +66,13 @@ export default function CreateFlow() {
       return false;
     }
 
+    if (lockFlow < 0) {
+      alert("Lock amount cannot be negative.");
+      return false;
+    }
+
     if (treasuryFlow + lockFlow > depositAmount) {
-      alert("Treasury route + lock amount cannot exceed the flow amount.");
+      alert("Treasury route + lock amount cannot exceed the total flow amount.");
       return false;
     }
 
@@ -88,7 +97,7 @@ export default function CreateFlow() {
       setTxStatus("Treasury route submitted successfully.");
 
       router.push(
-        `/result?amount=${amount}&treasuryAmount=${treasuryAmount}&lockAmount=0&remainingAmount=${
+        `/result?amount=${depositAmount}&treasuryAmount=${treasuryFlow}&lockAmount=0&remainingAmount=${
           depositAmount - treasuryFlow
         }&txId=${txId}&primitive=treasury`
       );
@@ -129,7 +138,7 @@ export default function CreateFlow() {
       setTxStatus("Lock + Treasury route submitted successfully.");
 
       router.push(
-        `/result?amount=${amount}&treasuryAmount=${treasuryAmount}&lockAmount=${lockAmount}&remainingAmount=${remainingFlow}&txId=${result.txId}&currentBlock=${result.currentBlock}&futureBlock=${result.futureBlock}&primitive=split-lock`
+        `/result?amount=${depositAmount}&treasuryAmount=${treasuryFlow}&lockAmount=${lockFlow}&remainingAmount=${remainingFlow}&txId=${result.txId}&currentBlock=${result.currentBlock}&futureBlock=${result.futureBlock}&primitive=split-lock`
       );
     } catch (error) {
       console.error(error);
@@ -228,6 +237,21 @@ export default function CreateFlow() {
                 onChange={(e) => setLockAmount(e.target.value)}
                 className="w-full rounded-2xl border border-zinc-800 bg-black p-4 text-sm outline-none transition focus:border-orange-500"
               />
+            </div>
+
+            <div className="mt-5 rounded-2xl border border-zinc-800 bg-black p-4">
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-gray-500">
+                Remaining Flow Calculation
+              </p>
+
+              <p className="mt-3 text-sm text-gray-400">
+                Deposit {depositAmount} USDCx − Treasury {treasuryFlow} USDCx −
+                Lock {lockFlow} USDCx
+              </p>
+
+              <p className="mt-2 text-2xl font-black text-green-400">
+                Remaining: {remainingFlow} USDCx
+              </p>
             </div>
 
             {txStatus && (
