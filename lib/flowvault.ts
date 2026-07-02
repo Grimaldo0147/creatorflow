@@ -5,6 +5,12 @@ export function isValidStacksAddress(address: string) {
 const FLOWVAULT_ADDRESS = "STD7QG84VQQ0C35SZM2EYTHZV4M8FQ0R7YNSQWPD";
 const FLOWVAULT_NAME = "flowvault-v2";
 
+/* TESTNET USDCx CONTRACT */
+const USDCX_CONTRACT =
+  "ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.usdc";
+
+/* -------------------- HELPERS -------------------- */
+
 function normalizeTxId(rawTxId: string | undefined) {
   if (!rawTxId) return "";
   return rawTxId.startsWith("0x") ? rawTxId : `0x${rawTxId}`;
@@ -22,6 +28,8 @@ function extractTxId(response: any) {
 
   return normalizeTxId(rawTxId);
 }
+
+/* -------------------- WALLET -------------------- */
 
 export async function getWalletAddress() {
   const { connect } = await import("@stacks/connect");
@@ -43,25 +51,33 @@ export async function getWalletAddress() {
   return address;
 }
 
+/* -------------------- BLOCK HEIGHT -------------------- */
+
 export async function getCurrentTestnetBlockHeight() {
   const response = await fetch(
     "https://api.testnet.hiro.so/extended/v1/block?limit=1"
   );
 
   if (!response.ok) {
-    throw new Error("Failed to fetch current testnet block height");
+    throw new Error("Failed to fetch block height");
   }
 
   const data = await response.json();
+
   return data.results[0].height;
 }
+
+/* -------------------- ROUTING RULES -------------------- */
 
 export async function setRoutingRules(
   splitAddress: string,
   splitAmount: number
 ) {
   const { request } = await import("@stacks/connect");
-  const { principalCV, someCV, uintCV } = await import("@stacks/transactions");
+
+  const { principalCV, someCV, uintCV } = await import(
+    "@stacks/transactions"
+  );
 
   const response: any = await request("stx_callContract", {
     contract: `${FLOWVAULT_ADDRESS}.${FLOWVAULT_NAME}`,
@@ -78,11 +94,13 @@ export async function setRoutingRules(
   const txId = extractTxId(response);
 
   if (!txId) {
-    throw new Error("Transaction submitted, but no txId was returned.");
+    throw new Error("No txId returned");
   }
 
   return txId;
 }
+
+/* -------------------- LOCK + SPLIT -------------------- */
 
 export async function setSplitAndLockRules(
   splitAddress: string,
@@ -90,9 +108,13 @@ export async function setSplitAndLockRules(
   splitAmount: number
 ) {
   const { request } = await import("@stacks/connect");
-  const { principalCV, someCV, uintCV } = await import("@stacks/transactions");
+
+  const { principalCV, someCV, uintCV } = await import(
+    "@stacks/transactions"
+  );
 
   const currentBlock = await getCurrentTestnetBlockHeight();
+
   const futureBlock = currentBlock + 100;
 
   const response: any = await request("stx_callContract", {
@@ -110,7 +132,7 @@ export async function setSplitAndLockRules(
   const txId = extractTxId(response);
 
   if (!txId) {
-    throw new Error("Transaction submitted, but no txId was returned.");
+    throw new Error("No txId returned");
   }
 
   return {
@@ -118,4 +140,36 @@ export async function setSplitAndLockRules(
     currentBlock,
     futureBlock,
   };
+}
+
+/* -------------------- DEPOSIT USDCx -------------------- */
+
+export async function depositUSDCx(amount: number) {
+  const { request } = await import("@stacks/connect");
+
+  const {
+    contractPrincipalCV,
+    uintCV,
+  } = await import("@stacks/transactions");
+
+  const response: any = await request("stx_callContract", {
+    contract: `${FLOWVAULT_ADDRESS}.${FLOWVAULT_NAME}`,
+    functionName: "deposit",
+    functionArgs: [
+      contractPrincipalCV(
+        USDCX_CONTRACT.split(".")[0],
+        USDCX_CONTRACT.split(".")[1]
+      ),
+      uintCV(amount),
+    ],
+    network: "testnet",
+  });
+
+  const txId = extractTxId(response);
+
+  if (!txId) {
+    throw new Error("Deposit failed");
+  }
+
+  return txId;
 }
