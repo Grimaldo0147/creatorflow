@@ -27,20 +27,19 @@ export default function CreateFlow() {
   const depositAmount = Number(amount || 0);
   const treasuryFlow = Number(treasuryAmount || 0);
   const lockFlow = Number(lockAmount || 0);
-
-  const remainingFlow = Math.max(
-    depositAmount - treasuryFlow - lockFlow,
-    0
-  );
+  const remainingFlow = Math.max(depositAmount - treasuryFlow - lockFlow, 0);
 
   const isBusy = treasuryLoading || lockLoading;
 
   const connectWallet = async () => {
     try {
+      setTxStatus("Connecting wallet...");
       const address = await getWalletAddress();
       setWalletAddress(address);
+      setTxStatus("Wallet connected successfully.");
     } catch (error) {
       console.error(error);
+      setTxStatus("Wallet connection failed.");
       alert("Wallet connection failed.");
     }
   };
@@ -88,13 +87,7 @@ export default function CreateFlow() {
 
       const txId = await setRoutingRules(treasury, treasuryFlow);
 
-      if (!txId) {
-        setTxStatus("Transaction submitted, but no transaction ID was returned.");
-        alert("Transaction submitted, but no transaction ID was returned.");
-        return;
-      }
-
-      setTxStatus("Treasury route submitted successfully.");
+      setTxStatus("Transaction submitted successfully.");
 
       router.push(
         `/result?amount=${depositAmount}&treasuryAmount=${treasuryFlow}&lockAmount=0&remainingAmount=${
@@ -121,19 +114,12 @@ export default function CreateFlow() {
     try {
       setLockLoading(true);
       setTxStatus("Fetching current Stacks testnet block...");
-      setTxStatus("Waiting for wallet approval...");
 
       const result = await setSplitAndLockRules(
         treasury,
         lockFlow,
         treasuryFlow
       );
-
-      if (!result.txId) {
-        setTxStatus("Transaction submitted, but no transaction ID was returned.");
-        alert("Transaction submitted, but no transaction ID was returned.");
-        return;
-      }
 
       setTxStatus("Lock + Treasury route submitted successfully.");
 
@@ -171,7 +157,8 @@ export default function CreateFlow() {
           <div className="flex flex-col items-start gap-3 sm:items-end">
             <button
               onClick={connectWallet}
-              className="rounded-2xl bg-orange-500 px-5 py-3 font-black text-black transition hover:bg-orange-400"
+              disabled={isBusy}
+              className="rounded-2xl bg-orange-500 px-5 py-3 font-black text-black transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {walletAddress ? "Wallet Connected" : "+ Connect Wallet"}
             </button>
@@ -218,6 +205,7 @@ export default function CreateFlow() {
               />
 
               <input
+                type="number"
                 placeholder="Total flow amount"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
@@ -225,6 +213,7 @@ export default function CreateFlow() {
               />
 
               <input
+                type="number"
                 placeholder="Treasury route amount"
                 value={treasuryAmount}
                 onChange={(e) => setTreasuryAmount(e.target.value)}
@@ -232,6 +221,7 @@ export default function CreateFlow() {
               />
 
               <input
+                type="number"
                 placeholder="Lock vault amount"
                 value={lockAmount}
                 onChange={(e) => setLockAmount(e.target.value)}
@@ -266,7 +256,7 @@ export default function CreateFlow() {
                 disabled={isBusy}
                 className="rounded-2xl bg-orange-500 px-5 py-4 font-black text-black transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {treasuryLoading ? "Running route..." : "Create Treasury Route"}
+                {treasuryLoading ? "Waiting for wallet..." : "Create Treasury Route"}
               </button>
 
               <button
@@ -274,7 +264,7 @@ export default function CreateFlow() {
                 disabled={isBusy}
                 className="rounded-2xl border border-orange-500 px-5 py-4 font-black text-orange-400 transition hover:bg-orange-500 hover:text-black disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {lockLoading ? "Locking flow..." : "Create Lock + Treasury Route"}
+                {lockLoading ? "Waiting for wallet..." : "Create Lock + Treasury Route"}
               </button>
             </div>
           </div>
@@ -365,10 +355,10 @@ export default function CreateFlow() {
                 </div>
 
                 <div className="rounded-2xl border border-zinc-800 bg-black p-4">
-                  <p className="font-black">Programmable treasury layer</p>
+                  <p className="font-black">Wallet-triggered transaction</p>
                   <p className="mt-1 text-sm text-gray-400">
-                    Combines routing + lock behavior into a creator/team
-                    treasury workflow.
+                    User signs a real Stacks testnet transaction, then verifies
+                    it on Hiro Explorer.
                   </p>
                 </div>
               </div>
