@@ -325,7 +325,7 @@ export default function CreateFlow() {
       setTxStage("wallet");
       setTxStatus("Waiting for wallet approval...");
 
-      const txId = await depositUSDCx(depositAmount);
+      const txId = await depositUSDCx(depositAmount, walletAddress);
 
       setTxStage("pending");
       setTxStatus("Deposit transaction submitted...");
