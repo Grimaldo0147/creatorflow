@@ -6,7 +6,7 @@ const FLOWVAULT_ADDRESS = "STD7QG84VQQ0C35SZM2EYTHZV4M8FQ0R7YNSQWPD";
 const FLOWVAULT_NAME = "flowvault-v2";
 
 const USDCX_ADDRESS = "ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM";
-const USDCX_NAME = "usdc";
+const USDCX_NAME = "usdcx";
 
 function normalizeTxId(rawTxId: string | undefined) {
   if (!rawTxId) return "";
