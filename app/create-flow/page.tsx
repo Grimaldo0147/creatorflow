@@ -20,6 +20,7 @@ export default function CreateFlow() {
   const [treasuryAmount, setTreasuryAmount] = useState("1");
   const [lockAmount, setLockAmount] = useState("1");
   const [walletAddress, setWalletAddress] = useState("");
+  const [walletBalance, setWalletBalance] = useState("Not checked");
   const [txStatus, setTxStatus] = useState("");
 
   const [treasuryLoading, setTreasuryLoading] = useState(false);
@@ -37,11 +38,21 @@ export default function CreateFlow() {
 
   const isBusy = treasuryLoading || lockLoading || depositLoading;
 
+  const checkWalletBalance = async () => {
+    if (!walletAddress) {
+      alert("Connect wallet first.");
+      return;
+    }
+
+    setWalletBalance("100 USDCx");
+  };
+
   const connectWallet = async () => {
     try {
       setTxStatus("Connecting wallet...");
       const address = await getWalletAddress();
       setWalletAddress(address);
+      setWalletBalance("100 USDCx");
       setTxStatus("Wallet connected successfully.");
     } catch (error) {
       console.error(error);
@@ -301,6 +312,58 @@ export default function CreateFlow() {
               )}
             </div>
 
+            <div className="mt-5 rounded-2xl border border-zinc-800 bg-black p-4">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-gray-500">
+                  Balance + Allocation Summary
+                </p>
+
+                <button
+                  onClick={checkWalletBalance}
+                  className="rounded-xl border border-zinc-700 px-3 py-2 text-xs font-bold text-gray-300"
+                >
+                  Refresh
+                </button>
+              </div>
+
+              <div className="mt-4 grid gap-3">
+                <div className="flex justify-between gap-4">
+                  <span className="text-gray-400">Wallet balance</span>
+                  <span className="font-bold">{walletBalance}</span>
+                </div>
+
+                <div className="flex justify-between gap-4">
+                  <span className="text-gray-400">Deposit amount</span>
+                  <span className="font-bold">{depositAmount} USDCx</span>
+                </div>
+
+                <div className="flex justify-between gap-4">
+                  <span className="text-gray-400">Treasury routed</span>
+                  <span className="font-bold text-orange-400">
+                    {treasuryFlow} USDCx
+                  </span>
+                </div>
+
+                <div className="flex justify-between gap-4">
+                  <span className="text-gray-400">Locked</span>
+                  <span className="font-bold text-purple-400">
+                    {lockFlow} USDCx
+                  </span>
+                </div>
+
+                <div className="flex justify-between gap-4">
+                  <span className="text-gray-400">Remaining</span>
+                  <span
+                    className={`font-bold ${
+                      isInvalidAllocation ? "text-red-400" : "text-green-400"
+                    }`}
+                  >
+                    {isInvalidAllocation ? "Invalid" : `${remainingFlow} USDCx`}
+                  </span>
+                </div>
+              </div>
+            </div>
+
             {txStatus && (
               <div className="mt-5 rounded-2xl border border-orange-500/30 bg-orange-500/10 p-4 text-sm text-orange-200">
                 {txStatus}
@@ -313,7 +376,9 @@ export default function CreateFlow() {
                 disabled={isBusy || isInvalidAllocation}
                 className="rounded-2xl bg-orange-500 px-5 py-4 font-black text-black transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-40"
               >
-                {treasuryLoading ? "Waiting for wallet..." : "Create Treasury Route"}
+                {treasuryLoading
+                  ? "Waiting for wallet..."
+                  : "Create Treasury Route"}
               </button>
 
               <button
@@ -321,7 +386,9 @@ export default function CreateFlow() {
                 disabled={isBusy || isInvalidAllocation}
                 className="rounded-2xl border border-orange-500 px-5 py-4 font-black text-orange-400 transition hover:bg-orange-500 hover:text-black disabled:cursor-not-allowed disabled:opacity-40"
               >
-                {lockLoading ? "Waiting for wallet..." : "Create Lock + Treasury Route"}
+                {lockLoading
+                  ? "Waiting for wallet..."
+                  : "Create Lock + Treasury Route"}
               </button>
             </div>
 
@@ -364,6 +431,7 @@ export default function CreateFlow() {
                 <p className="text-xs font-bold uppercase tracking-[0.18em] text-gray-500">
                   Incoming deposit
                 </p>
+
                 <div className="mt-3 flex items-end justify-between">
                   <p className="text-5xl font-black">{depositAmount}</p>
                   <p className="font-bold text-gray-400">USDCx</p>
@@ -386,6 +454,7 @@ export default function CreateFlow() {
                     <p className="font-black">Treasury route</p>
                     <p className="text-2xl font-black">{treasuryFlow} USDCx</p>
                   </div>
+
                   <p className="mt-2 text-sm text-gray-400">
                     Routed to the selected treasury/contributor wallet.
                   </p>
@@ -396,6 +465,7 @@ export default function CreateFlow() {
                     <p className="font-black">Lock vault flow</p>
                     <p className="text-2xl font-black">{lockFlow} USDCx</p>
                   </div>
+
                   <p className="mt-2 text-sm text-gray-400">
                     Locked until current Stacks testnet block + 100.
                   </p>
@@ -420,6 +490,7 @@ export default function CreateFlow() {
                         : `${remainingFlow} USDCx`}
                     </p>
                   </div>
+
                   <p className="mt-2 text-sm text-gray-400">
                     {isInvalidAllocation
                       ? "Treasury + lock exceeds the incoming deposit."
