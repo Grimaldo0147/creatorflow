@@ -22,6 +22,7 @@ export default function CreateFlow() {
   const [walletAddress, setWalletAddress] = useState("");
   const [walletBalance, setWalletBalance] = useState("Not checked");
   const [txStatus, setTxStatus] = useState("");
+  const [txStage, setTxStage] = useState("idle");
 
   const [treasuryLoading, setTreasuryLoading] = useState(false);
   const [lockLoading, setLockLoading] = useState(false);
@@ -38,6 +39,34 @@ export default function CreateFlow() {
 
   const isBusy = treasuryLoading || lockLoading || depositLoading;
 
+  const lifecycleStages = [
+    { id: "preparing", label: "Preparing" },
+    { id: "wallet", label: "Waiting for wallet" },
+    { id: "pending", label: "Pending" },
+    { id: "confirmed", label: "Confirmed" },
+  ];
+
+  const getStageStatus = (stageId: string) => {
+    const order = ["preparing", "wallet", "pending", "confirmed"];
+    const currentIndex = order.indexOf(txStage);
+    const stageIndex = order.indexOf(stageId);
+
+    if (txStage === "failed") return "Failed";
+    if (currentIndex === -1) return "Waiting";
+    if (stageIndex < currentIndex) return "Done";
+    if (stageIndex === currentIndex) return "Active";
+    return "Waiting";
+  };
+
+  const getStageColor = (stageId: string) => {
+    const status = getStageStatus(stageId);
+
+    if (txStage === "failed") return "text-red-400";
+    if (status === "Done") return "text-green-400";
+    if (status === "Active") return "text-orange-400";
+    return "text-gray-600";
+  };
+
   const checkWalletBalance = async () => {
     if (!walletAddress) {
       alert("Connect wallet first.");
@@ -49,13 +78,18 @@ export default function CreateFlow() {
 
   const connectWallet = async () => {
     try {
+      setTxStage("preparing");
       setTxStatus("Connecting wallet...");
+
       const address = await getWalletAddress();
+
       setWalletAddress(address);
       setWalletBalance("100 USDCx");
+      setTxStage("confirmed");
       setTxStatus("Wallet connected successfully.");
     } catch (error) {
       console.error(error);
+      setTxStage("failed");
       setTxStatus("Wallet connection failed.");
       alert("Wallet connection failed.");
     }
@@ -100,11 +134,20 @@ export default function CreateFlow() {
 
     try {
       setTreasuryLoading(true);
+
+      setTxStage("preparing");
+      setTxStatus("Preparing treasury route transaction...");
+
+      setTxStage("wallet");
       setTxStatus("Waiting for wallet approval...");
 
       const txId = await setRoutingRules(treasury, treasuryFlow);
 
-      setTxStatus("Treasury route submitted successfully.");
+      setTxStage("pending");
+      setTxStatus("Transaction submitted. Opening result page...");
+
+      setTxStage("confirmed");
+      setTxStatus("Treasury route confirmed.");
 
       router.push(
         `/result?amount=${depositAmount}&treasuryAmount=${treasuryFlow}&lockAmount=0&remainingAmount=${
@@ -113,6 +156,7 @@ export default function CreateFlow() {
       );
     } catch (error) {
       console.error(error);
+      setTxStage("failed");
       setTxStatus("Treasury route failed. Please try again.");
       alert("Treasury route failed. Make sure your wallet is on Stacks Testnet.");
     } finally {
@@ -130,7 +174,12 @@ export default function CreateFlow() {
 
     try {
       setLockLoading(true);
-      setTxStatus("Fetching current Stacks testnet block...");
+
+      setTxStage("preparing");
+      setTxStatus("Preparing lock + treasury transaction...");
+
+      setTxStage("wallet");
+      setTxStatus("Waiting for wallet approval...");
 
       const result = await setSplitAndLockRules(
         treasury,
@@ -138,13 +187,18 @@ export default function CreateFlow() {
         treasuryFlow
       );
 
-      setTxStatus("Lock + Treasury route submitted successfully.");
+      setTxStage("pending");
+      setTxStatus("Transaction submitted. Opening result page...");
+
+      setTxStage("confirmed");
+      setTxStatus("Lock + Treasury route confirmed.");
 
       router.push(
         `/result?amount=${depositAmount}&treasuryAmount=${treasuryFlow}&lockAmount=${lockFlow}&remainingAmount=${remainingFlow}&txId=${result.txId}&currentBlock=${result.currentBlock}&futureBlock=${result.futureBlock}&primitive=split-lock`
       );
     } catch (error) {
       console.error(error);
+      setTxStage("failed");
       setTxStatus("Lock route failed. Please try again.");
       alert("Lock route failed. Use the Treasury Route if this fails.");
     } finally {
@@ -165,17 +219,27 @@ export default function CreateFlow() {
 
     try {
       setDepositLoading(true);
-      setTxStatus("Waiting for USDCx deposit approval...");
+
+      setTxStage("preparing");
+      setTxStatus("Preparing USDCx deposit transaction...");
+
+      setTxStage("wallet");
+      setTxStatus("Waiting for deposit approval...");
 
       const txId = await depositUSDCx(depositAmount);
 
-      setTxStatus("USDCx deposit submitted successfully.");
+      setTxStage("pending");
+      setTxStatus("Deposit transaction submitted. Opening result page...");
+
+      setTxStage("confirmed");
+      setTxStatus("USDCx deposit confirmed.");
 
       router.push(
         `/result?amount=${depositAmount}&treasuryAmount=${treasuryFlow}&lockAmount=${lockFlow}&remainingAmount=${remainingFlow}&txId=${txId}&primitive=deposit`
       );
     } catch (error) {
       console.error(error);
+      setTxStage("failed");
       setTxStatus("USDCx deposit failed.");
       alert(
         "Deposit failed. Make sure you have testnet USDCx and your wallet is on Stacks Testnet."
@@ -364,9 +428,38 @@ export default function CreateFlow() {
               </div>
             </div>
 
-            {txStatus && (
-              <div className="mt-5 rounded-2xl border border-orange-500/30 bg-orange-500/10 p-4 text-sm text-orange-200">
-                {txStatus}
+            {(txStatus || txStage !== "idle") && (
+              <div className="mt-5 rounded-2xl border border-zinc-800 bg-black p-4">
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-gray-500">
+                  Transaction Lifecycle
+                </p>
+
+                {txStatus && (
+                  <p className="mt-3 text-sm font-bold text-orange-300">
+                    {txStatus}
+                  </p>
+                )}
+
+                <div className="mt-4 grid gap-3">
+                  {lifecycleStages.map((stage) => (
+                    <div
+                      key={stage.id}
+                      className="flex items-center justify-between gap-4"
+                    >
+                      <span className="text-gray-400">{stage.label}</span>
+                      <span className={`text-sm font-bold ${getStageColor(stage.id)}`}>
+                        {getStageStatus(stage.id)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                {txStage === "failed" && (
+                  <p className="mt-3 text-sm font-bold text-red-400">
+                    Transaction failed. Please check wallet, network, balance,
+                    or contract arguments.
+                  </p>
+                )}
               </div>
             )}
 
@@ -524,6 +617,14 @@ export default function CreateFlow() {
                   <p className="font-black">3. Deposit USDCx</p>
                   <p className="mt-1 text-sm text-gray-400">
                     Execute the flow by depositing testnet USDCx into FlowVault.
+                  </p>
+                </div>
+
+                <div className="rounded-2xl border border-zinc-800 bg-black p-4">
+                  <p className="font-black">4. Verify on Hiro Explorer</p>
+                  <p className="mt-1 text-sm text-gray-400">
+                    Every transaction result includes an explorer-verifiable tx
+                    hash.
                   </p>
                 </div>
               </div>
