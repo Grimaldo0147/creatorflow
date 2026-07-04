@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   isValidStacksAddress,
   setRoutingRules,
@@ -42,12 +42,10 @@ export default function CreateFlow() {
     ? 0
     : Math.max(depositAmount - treasuryFlow - lockFlow, 0);
 
-  const isBusy =
-    treasuryLoading || lockLoading || depositLoading;
+  const isBusy = treasuryLoading || lockLoading || depositLoading;
 
   const isWrongNetwork =
-    walletAddress.length > 0 &&
-    !walletAddress.startsWith("ST");
+    walletAddress.length > 0 && !walletAddress.startsWith("ST");
 
   const lifecycleStages = [
     { id: "preparing", label: "Preparing" },
@@ -56,7 +54,27 @@ export default function CreateFlow() {
     { id: "confirmed", label: "Confirmed" },
   ];
 
+  useEffect(() => {
+    const savedWallet = localStorage.getItem("createflow_wallet");
+
+    if (savedWallet) {
+      setWalletAddress(savedWallet);
+      setWalletBalance("100 USDCx");
+
+      if (savedWallet.startsWith("ST")) {
+        setTxStatus("Wallet session restored.");
+        setTxStage("confirmed");
+      } else {
+        setTxStatus("Wrong network detected. Switch to Stacks Testnet.");
+        setTxStage("failed");
+        setErrorMessage("Wrong network detected. Switch to Stacks Testnet.");
+      }
+    }
+  }, []);
+
   const disconnectWallet = () => {
+    localStorage.removeItem("createflow_wallet");
+
     setWalletAddress("");
     setWalletBalance("Not checked");
     setTxStatus("");
@@ -65,14 +83,9 @@ export default function CreateFlow() {
   };
 
   const getFriendlyError = (error: any) => {
-    const message = String(
-      error?.message || error || ""
-    ).toLowerCase();
+    const message = String(error?.message || error || "").toLowerCase();
 
-    if (
-      message.includes("user rejected") ||
-      message.includes("cancel")
-    ) {
+    if (message.includes("user rejected") || message.includes("cancel")) {
       return "Transaction rejected. Please approve it in your wallet.";
     }
 
@@ -80,17 +93,11 @@ export default function CreateFlow() {
       return "Wrong network. Switch wallet to Stacks Testnet.";
     }
 
-    if (
-      message.includes("balance") ||
-      message.includes("insufficient")
-    ) {
+    if (message.includes("balance") || message.includes("insufficient")) {
       return "Insufficient balance. Add testnet STX/USDCx.";
     }
 
-    if (
-      message.includes("invalid") ||
-      message.includes("principal")
-    ) {
+    if (message.includes("invalid") || message.includes("principal")) {
       return "Invalid address or contract argument.";
     }
 
@@ -99,13 +106,11 @@ export default function CreateFlow() {
 
   const blockWrongNetwork = () => {
     if (isWrongNetwork) {
-      const message =
-        "Wrong network. Please switch to Stacks Testnet.";
+      const message = "Wrong network. Please switch to Stacks Testnet.";
 
       setErrorMessage(message);
       setTxStage("failed");
       setTxStatus(message);
-
       alert(message);
 
       return true;
@@ -115,22 +120,13 @@ export default function CreateFlow() {
   };
 
   const getStageStatus = (stageId: string) => {
-    const order = [
-      "preparing",
-      "wallet",
-      "pending",
-      "confirmed",
-    ];
-
+    const order = ["preparing", "wallet", "pending", "confirmed"];
     const currentIndex = order.indexOf(txStage);
     const stageIndex = order.indexOf(stageId);
 
     if (txStage === "failed") return "Failed";
-
     if (currentIndex === -1) return "Waiting";
-
     if (stageIndex < currentIndex) return "Done";
-
     if (stageIndex === currentIndex) return "Active";
 
     return "Waiting";
@@ -139,17 +135,9 @@ export default function CreateFlow() {
   const getStageColor = (stageId: string) => {
     const status = getStageStatus(stageId);
 
-    if (txStage === "failed") {
-      return "text-red-400";
-    }
-
-    if (status === "Done") {
-      return "text-green-400";
-    }
-
-    if (status === "Active") {
-      return "text-orange-400";
-    }
+    if (txStage === "failed") return "text-red-400";
+    if (status === "Done") return "text-green-400";
+    if (status === "Active") return "text-orange-400";
 
     return "text-gray-600";
   };
@@ -157,19 +145,18 @@ export default function CreateFlow() {
   const connectWallet = async () => {
     try {
       setErrorMessage("");
-
       setTxStage("preparing");
       setTxStatus("Connecting wallet...");
 
       const address = await getWalletAddress();
 
       setWalletAddress(address);
-
       setWalletBalance("100 USDCx");
 
+      localStorage.setItem("createflow_wallet", address);
+
       if (!address.startsWith("ST")) {
-        const message =
-          "Wrong network detected. Switch to Stacks Testnet.";
+        const message = "Wrong network detected. Switch to Stacks Testnet.";
 
         setErrorMessage(message);
         setTxStage("failed");
@@ -183,8 +170,7 @@ export default function CreateFlow() {
     } catch (error) {
       console.error(error);
 
-      const friendlyError =
-        getFriendlyError(error);
+      const friendlyError = getFriendlyError(error);
 
       setErrorMessage(friendlyError);
       setTxStage("failed");
@@ -205,18 +191,12 @@ export default function CreateFlow() {
 
   const validateTreasuryAddress = () => {
     if (!treasury.trim()) {
-      alert(
-        "Please enter Treasury / Contributor address."
-      );
-
+      alert("Please enter Treasury / Contributor address.");
       return false;
     }
 
     if (!isValidStacksAddress(treasury)) {
-      alert(
-        "Invalid wallet address. Use Stacks testnet address."
-      );
-
+      alert("Invalid wallet address. Use Stacks testnet address.");
       return false;
     }
 
@@ -236,10 +216,7 @@ export default function CreateFlow() {
     }
 
     if (isInvalidAllocation) {
-      alert(
-        "Treasury + Lock cannot exceed deposit."
-      );
-
+      alert("Treasury + Lock cannot exceed deposit.");
       return false;
     }
 
@@ -248,34 +225,22 @@ export default function CreateFlow() {
 
   const createTreasuryRoute = async () => {
     if (blockWrongNetwork()) return;
-
     if (!validateTreasuryAddress()) return;
 
     try {
       setErrorMessage("");
-
       setTreasuryLoading(true);
 
       setTxStage("preparing");
-      setTxStatus(
-        "Preparing treasury transaction..."
-      );
+      setTxStatus("Preparing treasury transaction...");
 
       setTxStage("wallet");
-      setTxStatus(
-        "Waiting for wallet approval..."
-      );
+      setTxStatus("Waiting for wallet approval...");
 
-      const txId = await setRoutingRules(
-        treasury,
-        treasuryFlow
-      );
+      const txId = await setRoutingRules(treasury, treasuryFlow);
 
       setTxStage("pending");
-
-      setTxStatus(
-        "Transaction submitted..."
-      );
+      setTxStatus("Transaction submitted...");
 
       setTxStage("confirmed");
 
@@ -287,13 +252,10 @@ export default function CreateFlow() {
     } catch (error) {
       console.error(error);
 
-      const friendlyError =
-        getFriendlyError(error);
+      const friendlyError = getFriendlyError(error);
 
       setErrorMessage(friendlyError);
-
       setTxStage("failed");
-
       setTxStatus(friendlyError);
 
       alert(friendlyError);
@@ -304,38 +266,26 @@ export default function CreateFlow() {
 
   const createLockRoute = async () => {
     if (blockWrongNetwork()) return;
-
     if (!validateTreasuryAddress()) return;
 
     try {
       setErrorMessage("");
-
       setLockLoading(true);
 
       setTxStage("preparing");
-
-      setTxStatus(
-        "Preparing lock transaction..."
-      );
+      setTxStatus("Preparing lock transaction...");
 
       setTxStage("wallet");
+      setTxStatus("Waiting for wallet approval...");
 
-      setTxStatus(
-        "Waiting for wallet approval..."
+      const result = await setSplitAndLockRules(
+        treasury,
+        lockFlow,
+        treasuryFlow
       );
-
-      const result =
-        await setSplitAndLockRules(
-          treasury,
-          lockFlow,
-          treasuryFlow
-        );
 
       setTxStage("pending");
-
-      setTxStatus(
-        "Transaction submitted..."
-      );
+      setTxStatus("Transaction submitted...");
 
       setTxStage("confirmed");
 
@@ -345,13 +295,10 @@ export default function CreateFlow() {
     } catch (error) {
       console.error(error);
 
-      const friendlyError =
-        getFriendlyError(error);
+      const friendlyError = getFriendlyError(error);
 
       setErrorMessage(friendlyError);
-
       setTxStage("failed");
-
       setTxStatus(friendlyError);
 
       alert(friendlyError);
@@ -370,29 +317,18 @@ export default function CreateFlow() {
 
     try {
       setErrorMessage("");
-
       setDepositLoading(true);
 
       setTxStage("preparing");
-
-      setTxStatus(
-        "Preparing USDCx deposit..."
-      );
+      setTxStatus("Preparing USDCx deposit...");
 
       setTxStage("wallet");
+      setTxStatus("Waiting for wallet approval...");
 
-      setTxStatus(
-        "Waiting for wallet approval..."
-      );
-
-      const txId =
-        await depositUSDCx(depositAmount);
+      const txId = await depositUSDCx(depositAmount);
 
       setTxStage("pending");
-
-      setTxStatus(
-        "Deposit transaction submitted..."
-      );
+      setTxStatus("Deposit transaction submitted...");
 
       setTxStage("confirmed");
 
@@ -402,13 +338,10 @@ export default function CreateFlow() {
     } catch (error) {
       console.error(error);
 
-      const friendlyError =
-        getFriendlyError(error);
+      const friendlyError = getFriendlyError(error);
 
       setErrorMessage(friendlyError);
-
       setTxStage("failed");
-
       setTxStatus(friendlyError);
 
       alert(friendlyError);
@@ -420,7 +353,6 @@ export default function CreateFlow() {
   return (
     <main className="min-h-screen bg-black text-white px-4 py-8">
       <section className="max-w-6xl mx-auto">
-
         <div className="mb-6 flex gap-3">
           <a
             href="/"
@@ -438,7 +370,6 @@ export default function CreateFlow() {
         </div>
 
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-
           <div>
             <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-orange-500/30 bg-orange-500/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.2em] text-orange-400">
               CreateFlow
@@ -449,14 +380,12 @@ export default function CreateFlow() {
             </h1>
 
             <p className="mt-3 max-w-2xl text-gray-400">
-              Programmable treasury routing
-              using FlowVault primitives on
+              Programmable treasury routing using FlowVault primitives on
               Stacks.
             </p>
           </div>
 
           <div className="flex flex-col gap-3">
-
             {walletAddress ? (
               <button
                 onClick={disconnectWallet}
@@ -483,51 +412,39 @@ export default function CreateFlow() {
               >
                 {walletAddress.slice(0, 6)}...
                 {walletAddress.slice(-6)} •{" "}
-                {isWrongNetwork
-                  ? "Wrong Network"
-                  : "Stacks Testnet"}
+                {isWrongNetwork ? "Wrong Network" : "Stacks Testnet"}
               </div>
             )}
 
             {isWrongNetwork && (
               <div className="rounded-2xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm font-bold text-red-400">
-                Wrong network detected.
-                Switch to Stacks Testnet.
+                Wrong network detected. Switch to Stacks Testnet.
               </div>
             )}
           </div>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-2">
-
           <div className="rounded-3xl border border-zinc-800 bg-zinc-950 p-6">
-
             <div className="space-y-4">
-
               <input
                 placeholder="Creator wallet"
                 value={creator}
-                onChange={(e) =>
-                  setCreator(e.target.value)
-                }
+                onChange={(e) => setCreator(e.target.value)}
                 className="w-full rounded-2xl border border-zinc-800 bg-black p-4"
               />
 
               <input
                 placeholder="Treasury wallet"
                 value={treasury}
-                onChange={(e) =>
-                  setTreasury(e.target.value)
-                }
+                onChange={(e) => setTreasury(e.target.value)}
                 className="w-full rounded-2xl border border-zinc-800 bg-black p-4"
               />
 
               <input
                 placeholder="Designer wallet"
                 value={designer}
-                onChange={(e) =>
-                  setDesigner(e.target.value)
-                }
+                onChange={(e) => setDesigner(e.target.value)}
                 className="w-full rounded-2xl border border-zinc-800 bg-black p-4"
               />
 
@@ -535,9 +452,7 @@ export default function CreateFlow() {
                 type="number"
                 placeholder="Deposit amount"
                 value={amount}
-                onChange={(e) =>
-                  setAmount(e.target.value)
-                }
+                onChange={(e) => setAmount(e.target.value)}
                 className="w-full rounded-2xl border border-zinc-800 bg-black p-4"
               />
 
@@ -545,9 +460,7 @@ export default function CreateFlow() {
                 type="number"
                 placeholder="Treasury routed"
                 value={treasuryAmount}
-                onChange={(e) =>
-                  setTreasuryAmount(e.target.value)
-                }
+                onChange={(e) => setTreasuryAmount(e.target.value)}
                 className="w-full rounded-2xl border border-zinc-800 bg-black p-4"
               />
 
@@ -555,19 +468,14 @@ export default function CreateFlow() {
                 type="number"
                 placeholder="Locked amount"
                 value={lockAmount}
-                onChange={(e) =>
-                  setLockAmount(e.target.value)
-                }
+                onChange={(e) => setLockAmount(e.target.value)}
                 className="w-full rounded-2xl border border-zinc-800 bg-black p-4"
               />
             </div>
 
             <div className="mt-5 rounded-2xl border border-zinc-800 bg-black p-4">
-
               <div className="flex items-center justify-between">
-                <p className="text-sm text-gray-400">
-                  Wallet Balance
-                </p>
+                <p className="text-sm text-gray-400">Wallet Balance</p>
 
                 <button
                   onClick={checkWalletBalance}
@@ -578,7 +486,6 @@ export default function CreateFlow() {
               </div>
 
               <div className="mt-4 space-y-3">
-
                 <div className="flex justify-between">
                   <span>Balance</span>
                   <span>{walletBalance}</span>
@@ -604,9 +511,7 @@ export default function CreateFlow() {
 
                   <span
                     className={
-                      isInvalidAllocation
-                        ? "text-red-400"
-                        : "text-green-400"
+                      isInvalidAllocation ? "text-red-400" : "text-green-400"
                     }
                   >
                     {isInvalidAllocation
@@ -619,7 +524,6 @@ export default function CreateFlow() {
 
             {(txStatus || txStage !== "idle") && (
               <div className="mt-5 rounded-2xl border border-zinc-800 bg-black p-4">
-
                 <p className="text-xs uppercase tracking-[0.18em] text-gray-500">
                   Transaction Lifecycle
                 </p>
@@ -629,15 +533,12 @@ export default function CreateFlow() {
                 </p>
 
                 <div className="mt-4 grid gap-3">
-
                   {lifecycleStages.map((stage) => (
                     <div
                       key={stage.id}
                       className="flex items-center justify-between"
                     >
-                      <span className="text-gray-400">
-                        {stage.label}
-                      </span>
+                      <span className="text-gray-400">{stage.label}</span>
 
                       <span
                         className={`text-sm font-bold ${getStageColor(
@@ -659,90 +560,57 @@ export default function CreateFlow() {
             )}
 
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
-
               <button
                 onClick={createTreasuryRoute}
-                disabled={
-                  isBusy ||
-                  isInvalidAllocation ||
-                  isWrongNetwork
-                }
+                disabled={isBusy || isInvalidAllocation || isWrongNetwork}
                 className="rounded-2xl bg-orange-500 px-5 py-4 font-black text-black disabled:opacity-40"
               >
-                {treasuryLoading
-                  ? "Waiting..."
-                  : "Create Treasury Route"}
+                {treasuryLoading ? "Waiting..." : "Create Treasury Route"}
               </button>
 
               <button
                 onClick={createLockRoute}
-                disabled={
-                  isBusy ||
-                  isInvalidAllocation ||
-                  isWrongNetwork
-                }
+                disabled={isBusy || isInvalidAllocation || isWrongNetwork}
                 className="rounded-2xl border border-orange-500 px-5 py-4 font-black text-orange-400 disabled:opacity-40"
               >
-                {lockLoading
-                  ? "Waiting..."
-                  : "Create Lock Route"}
+                {lockLoading ? "Waiting..." : "Create Lock Route"}
               </button>
             </div>
 
             <button
               onClick={executeDeposit}
-              disabled={
-                isBusy ||
-                isInvalidAllocation ||
-                isWrongNetwork
-              }
+              disabled={isBusy || isInvalidAllocation || isWrongNetwork}
               className="mt-4 w-full rounded-2xl bg-green-500 px-5 py-4 font-black text-black disabled:opacity-40"
             >
-              {depositLoading
-                ? "Waiting..."
-                : "Deposit USDCx to Execute Flow"}
+              {depositLoading ? "Waiting..." : "Deposit USDCx to Execute Flow"}
             </button>
           </div>
 
           <div className="rounded-3xl border border-zinc-800 bg-zinc-950 p-6">
-
             <p className="text-xs uppercase tracking-[0.2em] text-orange-400">
               Route Preview
             </p>
 
             <div className="mt-6 space-y-4">
-
               <div className="rounded-2xl border border-zinc-800 bg-black p-5">
-                <p className="text-gray-400">
-                  Incoming Deposit
-                </p>
+                <p className="text-gray-400">Incoming Deposit</p>
 
-                <p className="mt-2 text-5xl font-black">
-                  {depositAmount}
-                </p>
+                <p className="mt-2 text-5xl font-black">{depositAmount}</p>
 
-                <p className="text-gray-400">
-                  USDCx
-                </p>
+                <p className="text-gray-400">USDCx</p>
               </div>
 
               <div className="rounded-2xl border border-orange-500/40 bg-orange-500/10 p-4">
-
                 <div className="flex justify-between">
                   <span>Treasury Route</span>
-                  <span>
-                    {treasuryFlow} USDCx
-                  </span>
+                  <span>{treasuryFlow} USDCx</span>
                 </div>
               </div>
 
               <div className="rounded-2xl border border-purple-500/40 bg-purple-500/10 p-4">
-
                 <div className="flex justify-between">
                   <span>Lock Vault</span>
-                  <span>
-                    {lockFlow} USDCx
-                  </span>
+                  <span>{lockFlow} USDCx</span>
                 </div>
               </div>
 
@@ -757,9 +625,7 @@ export default function CreateFlow() {
                   <span>Remaining</span>
 
                   <span>
-                    {isInvalidAllocation
-                      ? "Invalid"
-                      : `${remainingFlow} USDCx`}
+                    {isInvalidAllocation ? "Invalid" : `${remainingFlow} USDCx`}
                   </span>
                 </div>
               </div>
