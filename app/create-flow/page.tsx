@@ -40,6 +40,9 @@ export default function CreateFlow() {
 
   const isBusy = treasuryLoading || lockLoading || depositLoading;
 
+  const isWrongNetwork =
+    walletAddress.length > 0 && !walletAddress.startsWith("ST");
+
   const lifecycleStages = [
     { id: "preparing", label: "Preparing" },
     { id: "wallet", label: "Waiting for wallet" },
@@ -67,6 +70,19 @@ export default function CreateFlow() {
     }
 
     return "Contract error. Please check the transaction details and try again.";
+  };
+
+  const blockWrongNetwork = () => {
+    if (isWrongNetwork) {
+      const message = "Wrong network. Please switch your wallet to Stacks Testnet.";
+      setErrorMessage(message);
+      setTxStage("failed");
+      setTxStatus(message);
+      alert(message);
+      return true;
+    }
+
+    return false;
   };
 
   const getStageStatus = (stageId: string) => {
@@ -109,6 +125,16 @@ export default function CreateFlow() {
 
       setWalletAddress(address);
       setWalletBalance("100 USDCx");
+
+      if (!address.startsWith("ST")) {
+        const message =
+          "Wrong network detected. Please switch your wallet to Stacks Testnet.";
+        setErrorMessage(message);
+        setTxStage("failed");
+        setTxStatus(message);
+        return;
+      }
+
       setTxStage("confirmed");
       setTxStatus("Wallet connected successfully.");
     } catch (error) {
@@ -156,6 +182,7 @@ export default function CreateFlow() {
   };
 
   const createTreasuryRoute = async () => {
+    if (blockWrongNetwork()) return;
     if (!validateTreasuryAddress()) return;
 
     try {
@@ -194,6 +221,7 @@ export default function CreateFlow() {
   };
 
   const createLockRoute = async () => {
+    if (blockWrongNetwork()) return;
     if (!validateTreasuryAddress()) return;
 
     if (lockFlow <= 0) {
@@ -239,6 +267,8 @@ export default function CreateFlow() {
   };
 
   const executeDeposit = async () => {
+    if (blockWrongNetwork()) return;
+
     if (depositAmount <= 0) {
       alert("Enter a valid deposit amount.");
       return;
@@ -311,9 +341,22 @@ export default function CreateFlow() {
             </button>
 
             {walletAddress && (
-              <div className="rounded-full border border-green-500/40 bg-green-500/10 px-4 py-2 text-sm text-green-400">
-                {walletAddress.slice(0, 6)}...{walletAddress.slice(-6)} •
-                Stacks Testnet
+              <div
+                className={`rounded-full border px-4 py-2 text-sm ${
+                  isWrongNetwork
+                    ? "border-red-500/40 bg-red-500/10 text-red-400"
+                    : "border-green-500/40 bg-green-500/10 text-green-400"
+                }`}
+              >
+                {walletAddress.slice(0, 6)}...{walletAddress.slice(-6)} •{" "}
+                {isWrongNetwork ? "Wrong Network" : "Stacks Testnet"}
+              </div>
+            )}
+
+            {isWrongNetwork && (
+              <div className="rounded-2xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm font-bold text-red-400">
+                Wrong network detected. Please switch your wallet to Stacks
+                Testnet.
               </div>
             )}
           </div>
@@ -509,7 +552,7 @@ export default function CreateFlow() {
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
               <button
                 onClick={createTreasuryRoute}
-                disabled={isBusy || isInvalidAllocation}
+                disabled={isBusy || isInvalidAllocation || isWrongNetwork}
                 className="rounded-2xl bg-orange-500 px-5 py-4 font-black text-black transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {treasuryLoading
@@ -519,7 +562,7 @@ export default function CreateFlow() {
 
               <button
                 onClick={createLockRoute}
-                disabled={isBusy || isInvalidAllocation}
+                disabled={isBusy || isInvalidAllocation || isWrongNetwork}
                 className="rounded-2xl border border-orange-500 px-5 py-4 font-black text-orange-400 transition hover:bg-orange-500 hover:text-black disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {lockLoading
@@ -530,7 +573,7 @@ export default function CreateFlow() {
 
             <button
               onClick={executeDeposit}
-              disabled={isBusy || isInvalidAllocation}
+              disabled={isBusy || isInvalidAllocation || isWrongNetwork}
               className="mt-4 w-full rounded-2xl bg-green-500 px-5 py-4 font-black text-black transition hover:bg-green-400 disabled:cursor-not-allowed disabled:opacity-40"
             >
               {depositLoading
@@ -559,7 +602,13 @@ export default function CreateFlow() {
 
                 <div className="rounded-2xl border border-zinc-800 bg-black px-4 py-3 text-right">
                   <p className="text-xs text-gray-500">Network</p>
-                  <p className="font-bold text-green-400">Testnet</p>
+                  <p
+                    className={`font-bold ${
+                      isWrongNetwork ? "text-red-400" : "text-green-400"
+                    }`}
+                  >
+                    {isWrongNetwork ? "Wrong Network" : "Testnet"}
+                  </p>
                 </div>
               </div>
 
@@ -577,7 +626,7 @@ export default function CreateFlow() {
               <div className="my-5 flex justify-center">
                 <div
                   className={`h-10 w-1 rounded-full ${
-                    isInvalidAllocation
+                    isInvalidAllocation || isWrongNetwork
                       ? "bg-red-500"
                       : "bg-gradient-to-b from-orange-500 to-green-500"
                   }`}
@@ -609,7 +658,7 @@ export default function CreateFlow() {
 
                 <div
                   className={`rounded-2xl border p-4 ${
-                    isInvalidAllocation
+                    isInvalidAllocation || isWrongNetwork
                       ? "border-red-500/40 bg-red-500/10"
                       : "border-green-500/40 bg-green-500/10"
                   }`}
@@ -618,17 +667,23 @@ export default function CreateFlow() {
                     <p className="font-black">Remaining flow</p>
                     <p
                       className={`text-2xl font-black ${
-                        isInvalidAllocation ? "text-red-400" : ""
+                        isInvalidAllocation || isWrongNetwork
+                          ? "text-red-400"
+                          : ""
                       }`}
                     >
-                      {isInvalidAllocation
+                      {isWrongNetwork
+                        ? "Wrong Network"
+                        : isInvalidAllocation
                         ? "Invalid"
                         : `${remainingFlow} USDCx`}
                     </p>
                   </div>
 
                   <p className="mt-2 text-sm text-gray-400">
-                    {isInvalidAllocation
+                    {isWrongNetwork
+                      ? "Switch wallet to Stacks Testnet before creating a flow."
+                      : isInvalidAllocation
                       ? "Treasury + lock exceeds the incoming deposit."
                       : "Remaining funds stay with the creator/team flow."}
                   </p>
