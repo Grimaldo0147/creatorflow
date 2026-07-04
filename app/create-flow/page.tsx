@@ -30,10 +30,10 @@ export default function CreateFlow() {
   const treasuryFlow = Number(treasuryAmount || 0);
   const lockFlow = Number(lockAmount || 0);
 
-  const remainingFlow = Math.max(
-    depositAmount - treasuryFlow - lockFlow,
-    0
-  );
+  const isInvalidAllocation = treasuryFlow + lockFlow > depositAmount;
+  const remainingFlow = isInvalidAllocation
+    ? 0
+    : Math.max(depositAmount - treasuryFlow - lockFlow, 0);
 
   const isBusy = treasuryLoading || lockLoading || depositLoading;
 
@@ -76,8 +76,8 @@ export default function CreateFlow() {
       return false;
     }
 
-    if (treasuryFlow + lockFlow > depositAmount) {
-      alert("Treasury route + lock amount cannot exceed the total flow amount.");
+    if (isInvalidAllocation) {
+      alert("Invalid allocation: Treasury + Lock cannot exceed total deposit.");
       return false;
     }
 
@@ -147,6 +147,11 @@ export default function CreateFlow() {
       return;
     }
 
+    if (isInvalidAllocation) {
+      alert("Invalid allocation: Treasury + Lock cannot exceed total deposit.");
+      return;
+    }
+
     try {
       setDepositLoading(true);
       setTxStatus("Waiting for USDCx deposit approval...");
@@ -161,7 +166,9 @@ export default function CreateFlow() {
     } catch (error) {
       console.error(error);
       setTxStatus("USDCx deposit failed.");
-      alert("Deposit failed. Make sure you have testnet USDCx and your wallet is on Stacks Testnet.");
+      alert(
+        "Deposit failed. Make sure you have testnet USDCx and your wallet is on Stacks Testnet."
+      );
     } finally {
       setDepositLoading(false);
     }
@@ -261,7 +268,13 @@ export default function CreateFlow() {
               />
             </div>
 
-            <div className="mt-5 rounded-2xl border border-zinc-800 bg-black p-4">
+            <div
+              className={`mt-5 rounded-2xl border p-4 ${
+                isInvalidAllocation
+                  ? "border-red-500/40 bg-red-500/10"
+                  : "border-zinc-800 bg-black"
+              }`}
+            >
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-gray-500">
                 Remaining Flow Calculation
               </p>
@@ -271,9 +284,21 @@ export default function CreateFlow() {
                 Lock {lockFlow} USDCx
               </p>
 
-              <p className="mt-2 text-2xl font-black text-green-400">
-                Remaining: {remainingFlow} USDCx
+              <p
+                className={`mt-2 text-2xl font-black ${
+                  isInvalidAllocation ? "text-red-400" : "text-green-400"
+                }`}
+              >
+                {isInvalidAllocation
+                  ? "Invalid allocation"
+                  : `Remaining: ${remainingFlow} USDCx`}
               </p>
+
+              {isInvalidAllocation && (
+                <p className="mt-3 text-sm font-bold text-red-400">
+                  Treasury + Lock cannot exceed total deposit.
+                </p>
+              )}
             </div>
 
             {txStatus && (
@@ -285,16 +310,16 @@ export default function CreateFlow() {
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
               <button
                 onClick={createTreasuryRoute}
-                disabled={isBusy}
-                className="rounded-2xl bg-orange-500 px-5 py-4 font-black text-black transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={isBusy || isInvalidAllocation}
+                className="rounded-2xl bg-orange-500 px-5 py-4 font-black text-black transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {treasuryLoading ? "Waiting for wallet..." : "Create Treasury Route"}
               </button>
 
               <button
                 onClick={createLockRoute}
-                disabled={isBusy}
-                className="rounded-2xl border border-orange-500 px-5 py-4 font-black text-orange-400 transition hover:bg-orange-500 hover:text-black disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={isBusy || isInvalidAllocation}
+                className="rounded-2xl border border-orange-500 px-5 py-4 font-black text-orange-400 transition hover:bg-orange-500 hover:text-black disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {lockLoading ? "Waiting for wallet..." : "Create Lock + Treasury Route"}
               </button>
@@ -302,8 +327,8 @@ export default function CreateFlow() {
 
             <button
               onClick={executeDeposit}
-              disabled={isBusy}
-              className="mt-4 w-full rounded-2xl bg-green-500 px-5 py-4 font-black text-black transition hover:bg-green-400 disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={isBusy || isInvalidAllocation}
+              className="mt-4 w-full rounded-2xl bg-green-500 px-5 py-4 font-black text-black transition hover:bg-green-400 disabled:cursor-not-allowed disabled:opacity-40"
             >
               {depositLoading
                 ? "Waiting for deposit approval..."
@@ -312,7 +337,13 @@ export default function CreateFlow() {
           </div>
 
           <div className="space-y-6">
-            <div className="rounded-3xl border border-orange-500/30 bg-zinc-950 p-5 sm:p-7">
+            <div
+              className={`rounded-3xl border p-5 sm:p-7 ${
+                isInvalidAllocation
+                  ? "border-red-500/30 bg-red-950/20"
+                  : "border-orange-500/30 bg-zinc-950"
+              }`}
+            >
               <div className="mb-6 flex items-center justify-between">
                 <div>
                   <p className="text-xs font-bold uppercase tracking-[0.2em] text-orange-400">
@@ -340,7 +371,13 @@ export default function CreateFlow() {
               </div>
 
               <div className="my-5 flex justify-center">
-                <div className="h-10 w-1 rounded-full bg-gradient-to-b from-orange-500 to-green-500"></div>
+                <div
+                  className={`h-10 w-1 rounded-full ${
+                    isInvalidAllocation
+                      ? "bg-red-500"
+                      : "bg-gradient-to-b from-orange-500 to-green-500"
+                  }`}
+                ></div>
               </div>
 
               <div className="grid gap-4">
@@ -364,13 +401,29 @@ export default function CreateFlow() {
                   </p>
                 </div>
 
-                <div className="rounded-2xl border border-green-500/40 bg-green-500/10 p-4">
+                <div
+                  className={`rounded-2xl border p-4 ${
+                    isInvalidAllocation
+                      ? "border-red-500/40 bg-red-500/10"
+                      : "border-green-500/40 bg-green-500/10"
+                  }`}
+                >
                   <div className="flex items-center justify-between gap-4">
                     <p className="font-black">Remaining flow</p>
-                    <p className="text-2xl font-black">{remainingFlow} USDCx</p>
+                    <p
+                      className={`text-2xl font-black ${
+                        isInvalidAllocation ? "text-red-400" : ""
+                      }`}
+                    >
+                      {isInvalidAllocation
+                        ? "Invalid"
+                        : `${remainingFlow} USDCx`}
+                    </p>
                   </div>
                   <p className="mt-2 text-sm text-gray-400">
-                    Remaining funds stay with the creator/team flow.
+                    {isInvalidAllocation
+                      ? "Treasury + lock exceeds the incoming deposit."
+                      : "Remaining funds stay with the creator/team flow."}
                   </p>
                 </div>
               </div>
