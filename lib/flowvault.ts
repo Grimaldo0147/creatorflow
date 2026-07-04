@@ -56,6 +56,7 @@ export async function getCurrentTestnetBlockHeight() {
   }
 
   const data = await response.json();
+
   return data.results[0].height;
 }
 
@@ -127,13 +128,14 @@ export async function depositUSDCx(amount: number) {
   const { request } = await import("@stacks/connect");
   const { contractPrincipalCV, uintCV } = await import("@stacks/transactions");
 
+  const microAmount = Math.round(amount * 1_000_000);
+
   const response: any = await request("stx_callContract", {
     contract: `${FLOWVAULT_ADDRESS}.${FLOWVAULT_NAME}`,
     functionName: "deposit",
     functionArgs: [
-      uintCV(0),
       contractPrincipalCV(USDCX_ADDRESS, USDCX_NAME),
-      uintCV(amount),
+      uintCV(microAmount),
     ],
     network: "testnet",
   });
