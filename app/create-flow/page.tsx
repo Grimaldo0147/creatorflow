@@ -23,6 +23,7 @@ export default function CreateFlow() {
   const [walletBalance, setWalletBalance] = useState("Not checked");
   const [txStatus, setTxStatus] = useState("");
   const [txStage, setTxStage] = useState("idle");
+  const [errorMessage, setErrorMessage] = useState("");
 
   const [treasuryLoading, setTreasuryLoading] = useState(false);
   const [lockLoading, setLockLoading] = useState(false);
@@ -45,6 +46,28 @@ export default function CreateFlow() {
     { id: "pending", label: "Pending" },
     { id: "confirmed", label: "Confirmed" },
   ];
+
+  const getFriendlyError = (error: any) => {
+    const message = String(error?.message || error || "").toLowerCase();
+
+    if (message.includes("user rejected") || message.includes("cancel")) {
+      return "Transaction rejected. Please approve it in your wallet to continue.";
+    }
+
+    if (message.includes("network")) {
+      return "Wrong network. Please switch your wallet to Stacks Testnet.";
+    }
+
+    if (message.includes("balance") || message.includes("insufficient")) {
+      return "Insufficient balance. Add testnet STX/USDCx and try again.";
+    }
+
+    if (message.includes("invalid") || message.includes("principal")) {
+      return "Invalid address or contract argument. Please check your wallet address.";
+    }
+
+    return "Contract error. Please check the transaction details and try again.";
+  };
 
   const getStageStatus = (stageId: string) => {
     const order = ["preparing", "wallet", "pending", "confirmed"];
@@ -78,6 +101,7 @@ export default function CreateFlow() {
 
   const connectWallet = async () => {
     try {
+      setErrorMessage("");
       setTxStage("preparing");
       setTxStatus("Connecting wallet...");
 
@@ -89,9 +113,11 @@ export default function CreateFlow() {
       setTxStatus("Wallet connected successfully.");
     } catch (error) {
       console.error(error);
+      const friendlyError = getFriendlyError(error);
+      setErrorMessage(friendlyError);
       setTxStage("failed");
-      setTxStatus("Wallet connection failed.");
-      alert("Wallet connection failed.");
+      setTxStatus(friendlyError);
+      alert(friendlyError);
     }
   };
 
@@ -133,6 +159,7 @@ export default function CreateFlow() {
     if (!validateTreasuryAddress()) return;
 
     try {
+      setErrorMessage("");
       setTreasuryLoading(true);
 
       setTxStage("preparing");
@@ -156,9 +183,11 @@ export default function CreateFlow() {
       );
     } catch (error) {
       console.error(error);
+      const friendlyError = getFriendlyError(error);
+      setErrorMessage(friendlyError);
       setTxStage("failed");
-      setTxStatus("Treasury route failed. Please try again.");
-      alert("Treasury route failed. Make sure your wallet is on Stacks Testnet.");
+      setTxStatus(friendlyError);
+      alert(friendlyError);
     } finally {
       setTreasuryLoading(false);
     }
@@ -173,6 +202,7 @@ export default function CreateFlow() {
     }
 
     try {
+      setErrorMessage("");
       setLockLoading(true);
 
       setTxStage("preparing");
@@ -198,9 +228,11 @@ export default function CreateFlow() {
       );
     } catch (error) {
       console.error(error);
+      const friendlyError = getFriendlyError(error);
+      setErrorMessage(friendlyError);
       setTxStage("failed");
-      setTxStatus("Lock route failed. Please try again.");
-      alert("Lock route failed. Use the Treasury Route if this fails.");
+      setTxStatus(friendlyError);
+      alert(friendlyError);
     } finally {
       setLockLoading(false);
     }
@@ -218,6 +250,7 @@ export default function CreateFlow() {
     }
 
     try {
+      setErrorMessage("");
       setDepositLoading(true);
 
       setTxStage("preparing");
@@ -239,11 +272,11 @@ export default function CreateFlow() {
       );
     } catch (error) {
       console.error(error);
+      const friendlyError = getFriendlyError(error);
+      setErrorMessage(friendlyError);
       setTxStage("failed");
-      setTxStatus("USDCx deposit failed.");
-      alert(
-        "Deposit failed. Make sure you have testnet USDCx and your wallet is on Stacks Testnet."
-      );
+      setTxStatus(friendlyError);
+      alert(friendlyError);
     } finally {
       setDepositLoading(false);
     }
@@ -447,7 +480,11 @@ export default function CreateFlow() {
                       className="flex items-center justify-between gap-4"
                     >
                       <span className="text-gray-400">{stage.label}</span>
-                      <span className={`text-sm font-bold ${getStageColor(stage.id)}`}>
+                      <span
+                        className={`text-sm font-bold ${getStageColor(
+                          stage.id
+                        )}`}
+                      >
                         {getStageStatus(stage.id)}
                       </span>
                     </div>
@@ -460,6 +497,12 @@ export default function CreateFlow() {
                     or contract arguments.
                   </p>
                 )}
+              </div>
+            )}
+
+            {errorMessage && (
+              <div className="mt-5 rounded-2xl border border-red-500/40 bg-red-500/10 p-4 text-sm font-bold text-red-400">
+                {errorMessage}
               </div>
             )}
 
