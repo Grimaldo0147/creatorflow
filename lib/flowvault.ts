@@ -128,14 +128,9 @@ export async function setSplitAndLockRules(
 export async function depositUSDCx(amount: number, senderAddress: string) {
   const { request } = await import("@stacks/connect");
 
-  const {
-    contractPrincipalCV,
-    uintCV,
-    FungibleConditionCode,
-    createAsset,
-    makeStandardFungiblePostCondition,
-    PostConditionMode,
-  } = await import("@stacks/transactions");
+  const { contractPrincipalCV, uintCV, Pc, PostConditionMode } = await import(
+    "@stacks/transactions"
+  );
 
   if (!senderAddress || !senderAddress.startsWith("ST")) {
     throw new Error("Wrong network. Please switch to Stacks Testnet.");
@@ -143,18 +138,9 @@ export async function depositUSDCx(amount: number, senderAddress: string) {
 
   const microAmount = BigInt(Math.round(amount * 1_000_000));
 
-  const usdcxAsset = createAsset(
-    USDCX_ADDRESS,
-    USDCX_NAME,
-    USDCX_ASSET_NAME
-  );
-
-  const postCondition = makeStandardFungiblePostCondition(
-    senderAddress,
-    FungibleConditionCode.Equal,
-    microAmount,
-    usdcxAsset
-  );
+  const postCondition = Pc.principal(senderAddress)
+    .willSendEq(microAmount)
+    .ft(`${USDCX_ADDRESS}.${USDCX_NAME}`, USDCX_ASSET_NAME);
 
   const response: any = await request("stx_callContract", {
     contract: `${FLOWVAULT_ADDRESS}.${FLOWVAULT_NAME}`,
