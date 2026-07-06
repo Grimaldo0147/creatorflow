@@ -7,7 +7,6 @@ const FLOWVAULT_NAME = "flowvault-v2";
 
 const USDCX_ADDRESS = "ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM";
 const USDCX_NAME = "usdcx";
-const USDCX_ASSET_NAME = "usdcx-token";
 
 function normalizeTxId(rawTxId: string | undefined) {
   if (!rawTxId) return "";
@@ -126,21 +125,13 @@ export async function setSplitAndLockRules(
 
 export async function depositUSDCx(amount: number, senderAddress: string) {
   const { request } = await import("@stacks/connect");
-
-  const { contractPrincipalCV, uintCV, Pc } = await import(
-    "@stacks/transactions"
-  );
+  const { contractPrincipalCV, uintCV } = await import("@stacks/transactions");
 
   if (!senderAddress || !senderAddress.startsWith("ST")) {
     throw new Error("Wrong network. Please switch to Stacks Testnet.");
   }
 
-  const microAmountNumber = Math.round(amount * 1_000_000);
-  const microAmount = BigInt(microAmountNumber);
-
-  const postCondition = Pc.principal(`${FLOWVAULT_ADDRESS}.${FLOWVAULT_NAME}`)
-    .willSendEq(microAmountNumber.toString())
-    .ft(`${USDCX_ADDRESS}.${USDCX_NAME}`, USDCX_ASSET_NAME);
+  const microAmount = BigInt(Math.round(amount * 1_000_000));
 
   const response: any = await request("stx_callContract", {
     contract: `${FLOWVAULT_ADDRESS}.${FLOWVAULT_NAME}`,
@@ -149,8 +140,8 @@ export async function depositUSDCx(amount: number, senderAddress: string) {
       contractPrincipalCV(USDCX_ADDRESS, USDCX_NAME),
       uintCV(microAmount),
     ],
-    postConditionMode: "deny",
-    postConditions: [postCondition],
+    postConditionMode: "allow",
+    postConditions: [],
     network: "testnet",
   });
 
