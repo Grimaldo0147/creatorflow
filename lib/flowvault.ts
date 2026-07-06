@@ -136,12 +136,11 @@ export async function depositUSDCx(amount: number, senderAddress: string) {
     throw new Error("Wrong network. Please switch to Stacks Testnet.");
   }
 
-  const microAmount = BigInt(Math.round(amount * 1_000_000));
+  const microAmountNumber = Math.round(amount * 1_000_000);
+const microAmount = BigInt(microAmountNumber);
 
-  const postCondition = Pc.principal(
-  `${FLOWVAULT_ADDRESS}.${FLOWVAULT_NAME}`
-)
-  .willSendEq(microAmount)
+const postCondition = Pc.principal(`${FLOWVAULT_ADDRESS}.${FLOWVAULT_NAME}`)
+  .willSendEq(microAmountNumber)
   .ft(`${USDCX_ADDRESS}.${USDCX_NAME}`, USDCX_ASSET_NAME);
 
   const response: any = await request("stx_callContract", {
