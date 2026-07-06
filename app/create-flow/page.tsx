@@ -59,7 +59,7 @@ export default function CreateFlow() {
 
     if (savedWallet) {
       setWalletAddress(savedWallet);
-      setWalletBalance("100 USDCx");
+      setWalletBalance("Not fetched yet");
 
       if (savedWallet.startsWith("ST")) {
         setTxStatus("Wallet session restored.");
@@ -151,7 +151,7 @@ export default function CreateFlow() {
       const address = await getWalletAddress();
 
       setWalletAddress(address);
-      setWalletBalance("100 USDCx");
+      setWalletBalance("Not fetched yet");
 
       localStorage.setItem("createflow_wallet", address);
 
@@ -181,13 +181,13 @@ export default function CreateFlow() {
   };
 
   const checkWalletBalance = async () => {
-    if (!walletAddress) {
-      alert("Connect wallet first.");
-      return;
-    }
+  if (!walletAddress) {
+    alert("Connect wallet first.");
+    return;
+  }
 
-    setWalletBalance("100 USDCx");
-  };
+  setWalletBalance("Balance fetch coming soon");
+};
 
   const validateTreasuryAddress = () => {
     if (!treasury.trim()) {
