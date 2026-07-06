@@ -57,7 +57,6 @@ export async function getCurrentTestnetBlockHeight() {
   }
 
   const data = await response.json();
-
   return data.results[0].height;
 }
 
@@ -137,11 +136,11 @@ export async function depositUSDCx(amount: number, senderAddress: string) {
   }
 
   const microAmountNumber = Math.round(amount * 1_000_000);
-const microAmount = BigInt(microAmountNumber);
+  const microAmount = BigInt(microAmountNumber);
 
-const postCondition = Pc.principal(`${FLOWVAULT_ADDRESS}.${FLOWVAULT_NAME}`)
-  .willSendEq(microAmountNumber)
-  .ft(`${USDCX_ADDRESS}.${USDCX_NAME}`, USDCX_ASSET_NAME);
+  const postCondition = Pc.principal(`${FLOWVAULT_ADDRESS}.${FLOWVAULT_NAME}`)
+    .willSendEq(microAmountNumber.toString())
+    .ft(`${USDCX_ADDRESS}.${USDCX_NAME}`, USDCX_ASSET_NAME);
 
   const response: any = await request("stx_callContract", {
     contract: `${FLOWVAULT_ADDRESS}.${FLOWVAULT_NAME}`,
