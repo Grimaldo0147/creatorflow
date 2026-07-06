@@ -22,7 +22,7 @@ export default function CreateFlow() {
   const [lockAmount, setLockAmount] = useState("1");
 
   const [walletAddress, setWalletAddress] = useState("");
-  const [walletBalance, setWalletBalance] = useState("Not checked");
+  const [walletBalance, setWalletBalance] = useState("Not fetched yet");
 
   const [txStatus, setTxStatus] = useState("");
   const [txStage, setTxStage] = useState("idle");
@@ -54,16 +54,44 @@ export default function CreateFlow() {
     { id: "confirmed", label: "Confirmed" },
   ];
 
+  const fetchUSDCxBalance = async (address: string) => {
+    try {
+      setWalletBalance("Fetching...");
+
+      const response = await fetch(
+        `https://api.testnet.hiro.so/extended/v1/address/${address}/balances`
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch balance");
+      }
+
+      const data = await response.json();
+
+      const rawBalance =
+        data?.fungible_tokens?.[
+          "ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.usdcx::usdcx-token"
+        ]?.balance || "0";
+
+      const balance = Number(rawBalance) / 1_000_000;
+
+      setWalletBalance(`${balance} USDCx`);
+    } catch (error) {
+      console.error(error);
+      setWalletBalance("Failed to fetch");
+    }
+  };
+
   useEffect(() => {
     const savedWallet = localStorage.getItem("createflow_wallet");
 
     if (savedWallet) {
       setWalletAddress(savedWallet);
-      setWalletBalance("Not fetched yet");
 
       if (savedWallet.startsWith("ST")) {
         setTxStatus("Wallet session restored.");
         setTxStage("confirmed");
+        fetchUSDCxBalance(savedWallet);
       } else {
         setTxStatus("Wrong network detected. Switch to Stacks Testnet.");
         setTxStage("failed");
@@ -76,7 +104,7 @@ export default function CreateFlow() {
     localStorage.removeItem("createflow_wallet");
 
     setWalletAddress("");
-    setWalletBalance("Not checked");
+    setWalletBalance("Not fetched yet");
     setTxStatus("");
     setTxStage("idle");
     setErrorMessage("");
@@ -151,8 +179,6 @@ export default function CreateFlow() {
       const address = await getWalletAddress();
 
       setWalletAddress(address);
-      setWalletBalance("Not fetched yet");
-
       localStorage.setItem("createflow_wallet", address);
 
       if (!address.startsWith("ST")) {
@@ -164,6 +190,8 @@ export default function CreateFlow() {
 
         return;
       }
+
+      await fetchUSDCxBalance(address);
 
       setTxStage("confirmed");
       setTxStatus("Wallet connected successfully.");
@@ -181,13 +209,13 @@ export default function CreateFlow() {
   };
 
   const checkWalletBalance = async () => {
-  if (!walletAddress) {
-    alert("Connect wallet first.");
-    return;
-  }
+    if (!walletAddress) {
+      alert("Connect wallet first.");
+      return;
+    }
 
-  setWalletBalance("Balance fetch coming soon");
-};
+    await fetchUSDCxBalance(walletAddress);
+  };
 
   const validateTreasuryAddress = () => {
     if (!treasury.trim()) {
@@ -329,6 +357,8 @@ export default function CreateFlow() {
 
       setTxStage("pending");
       setTxStatus("Deposit transaction submitted...");
+
+      await fetchUSDCxBalance(walletAddress);
 
       setTxStage("confirmed");
 
