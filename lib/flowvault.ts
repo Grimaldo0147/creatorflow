@@ -128,7 +128,7 @@ export async function setSplitAndLockRules(
 export async function depositUSDCx(amount: number, senderAddress: string) {
   const { request } = await import("@stacks/connect");
 
-  const { contractPrincipalCV, uintCV, Pc, PostConditionMode } = await import(
+  const { contractPrincipalCV, uintCV, Pc } = await import(
     "@stacks/transactions"
   );
 
@@ -149,7 +149,7 @@ export async function depositUSDCx(amount: number, senderAddress: string) {
       contractPrincipalCV(USDCX_ADDRESS, USDCX_NAME),
       uintCV(microAmount),
     ],
-    postConditionMode: PostConditionMode.Deny,
+    postConditionMode: "deny",
     postConditions: [postCondition],
     network: "testnet",
   });
