@@ -10,6 +10,12 @@ import {
   depositUSDCx,
 } from "@/lib/flowvault";
 
+const USDCX_ASSET_KEY =
+  "ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.usdcx::usdcx-token";
+
+const FLOWVAULT_CONTRACT =
+  "STD7QG84VQQ0C35SZM2EYTHZV4M8FQ0R7YNSQWPD.flowvault-v2";
+
 export default function CreateFlow() {
   const router = useRouter();
 
@@ -23,6 +29,7 @@ export default function CreateFlow() {
 
   const [walletAddress, setWalletAddress] = useState("");
   const [walletBalance, setWalletBalance] = useState("Not fetched yet");
+  const [flowVaultBalance, setFlowVaultBalance] = useState("Not fetched yet");
 
   const [txStatus, setTxStatus] = useState("");
   const [txStage, setTxStage] = useState("idle");
@@ -37,7 +44,6 @@ export default function CreateFlow() {
   const lockFlow = Number(lockAmount || 0);
 
   const isInvalidAllocation = treasuryFlow + lockFlow > depositAmount;
-
   const remainingFlow = isInvalidAllocation
     ? 0
     : Math.max(depositAmount - treasuryFlow - lockFlow, 0);
@@ -54,6 +60,11 @@ export default function CreateFlow() {
     { id: "confirmed", label: "Confirmed" },
   ];
 
+  const formatUSDCx = (rawBalance: string) => {
+    const balance = Number(rawBalance || "0") / 1_000_000;
+    return `${balance} USDCx`;
+  };
+
   const fetchUSDCxBalance = async (address: string) => {
     try {
       setWalletBalance("Fetching...");
@@ -63,27 +74,59 @@ export default function CreateFlow() {
       );
 
       if (!response.ok) {
-        throw new Error("Failed to fetch balance");
+        throw new Error("Failed to fetch wallet balance");
       }
 
       const data = await response.json();
 
       const rawBalance =
-        data?.fungible_tokens?.[
-          "ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.usdcx::usdcx-token"
-        ]?.balance || "0";
+        data?.fungible_tokens?.[USDCX_ASSET_KEY]?.balance || "0";
 
-      const balance = Number(rawBalance) / 1_000_000;
-
-      setWalletBalance(`${balance} USDCx`);
+      setWalletBalance(formatUSDCx(rawBalance));
     } catch (error) {
       console.error(error);
       setWalletBalance("Failed to fetch");
     }
   };
 
+  const fetchFlowVaultBalance = async () => {
+    try {
+      setFlowVaultBalance("Fetching...");
+
+      const response = await fetch(
+        `https://api.testnet.hiro.so/extended/v1/address/${FLOWVAULT_CONTRACT}/balances`
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch FlowVault balance");
+      }
+
+      const data = await response.json();
+
+      const rawBalance =
+        data?.fungible_tokens?.[USDCX_ASSET_KEY]?.balance || "0";
+
+      setFlowVaultBalance(formatUSDCx(rawBalance));
+    } catch (error) {
+      console.error(error);
+      setFlowVaultBalance("Failed to fetch");
+    }
+  };
+
+  const refreshBalances = async (address?: string) => {
+    const activeAddress = address || walletAddress;
+
+    if (activeAddress && activeAddress.startsWith("ST")) {
+      await fetchUSDCxBalance(activeAddress);
+    }
+
+    await fetchFlowVaultBalance();
+  };
+
   useEffect(() => {
     const savedWallet = localStorage.getItem("createflow_wallet");
+
+    fetchFlowVaultBalance();
 
     if (savedWallet) {
       setWalletAddress(savedWallet);
@@ -191,7 +234,7 @@ export default function CreateFlow() {
         return;
       }
 
-      await fetchUSDCxBalance(address);
+      await refreshBalances(address);
 
       setTxStage("confirmed");
       setTxStatus("Wallet connected successfully.");
@@ -209,12 +252,7 @@ export default function CreateFlow() {
   };
 
   const checkWalletBalance = async () => {
-    if (!walletAddress) {
-      alert("Connect wallet first.");
-      return;
-    }
-
-    await fetchUSDCxBalance(walletAddress);
+    await refreshBalances(walletAddress);
   };
 
   const validateTreasuryAddress = () => {
@@ -358,7 +396,7 @@ export default function CreateFlow() {
       setTxStage("pending");
       setTxStatus("Deposit transaction submitted...");
 
-      await fetchUSDCxBalance(walletAddress);
+      await refreshBalances(walletAddress);
 
       setTxStage("confirmed");
 
@@ -505,7 +543,7 @@ export default function CreateFlow() {
 
             <div className="mt-5 rounded-2xl border border-zinc-800 bg-black p-4">
               <div className="flex items-center justify-between">
-                <p className="text-sm text-gray-400">Wallet Balance</p>
+                <p className="text-sm text-gray-400">Balance Overview</p>
 
                 <button
                   onClick={checkWalletBalance}
@@ -517,8 +555,13 @@ export default function CreateFlow() {
 
               <div className="mt-4 space-y-3">
                 <div className="flex justify-between">
-                  <span>Balance</span>
+                  <span>Wallet Balance</span>
                   <span>{walletBalance}</span>
+                </div>
+
+                <div className="flex justify-between">
+                  <span>Deposited in FlowVault</span>
+                  <span className="text-orange-400">{flowVaultBalance}</span>
                 </div>
 
                 <div className="flex justify-between">
@@ -538,7 +581,6 @@ export default function CreateFlow() {
 
                 <div className="flex justify-between">
                   <span>Remaining</span>
-
                   <span
                     className={
                       isInvalidAllocation ? "text-red-400" : "text-green-400"
@@ -624,9 +666,7 @@ export default function CreateFlow() {
             <div className="mt-6 space-y-4">
               <div className="rounded-2xl border border-zinc-800 bg-black p-5">
                 <p className="text-gray-400">Incoming Deposit</p>
-
                 <p className="mt-2 text-5xl font-black">{depositAmount}</p>
-
                 <p className="text-gray-400">USDCx</p>
               </div>
 
@@ -653,7 +693,6 @@ export default function CreateFlow() {
               >
                 <div className="flex justify-between">
                   <span>Remaining</span>
-
                   <span>
                     {isInvalidAllocation ? "Invalid" : `${remainingFlow} USDCx`}
                   </span>
