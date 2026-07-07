@@ -66,6 +66,11 @@ export default function CreateFlow() {
     return `${balance} USDCx`;
   };
 
+  const getNumericWalletBalance = () => {
+    if (!walletBalance.includes("USDCx")) return 0;
+    return Number(walletBalance.replace(" USDCx", "")) || 0;
+  };
+
   const fetchUSDCxBalance = async (address: string) => {
     try {
       setWalletBalance("Fetching...");
@@ -391,6 +396,30 @@ export default function CreateFlow() {
 
     if (depositAmount <= 0) {
       alert("Enter valid deposit amount.");
+      return;
+    }
+
+    const numericWalletBalance = getNumericWalletBalance();
+
+    if (numericWalletBalance <= 0) {
+      const message =
+        "Unable to confirm USDCx balance. Refresh balance before depositing.";
+
+      setErrorMessage(message);
+      setTxStage("failed");
+      setTxStatus(message);
+      alert(message);
+      return;
+    }
+
+    if (depositAmount > numericWalletBalance) {
+      const message =
+        "Insufficient USDCx balance. Reduce deposit amount or get more testnet USDCx.";
+
+      setErrorMessage(message);
+      setTxStage("failed");
+      setTxStatus(message);
+      alert(message);
       return;
     }
 
