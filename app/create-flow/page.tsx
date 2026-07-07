@@ -71,6 +71,42 @@ export default function CreateFlow() {
     return Number(walletBalance.replace(" USDCx", "")) || 0;
   };
 
+  const saveFlow = ({
+    txId,
+    type,
+    currentBlock,
+    futureBlock,
+  }: {
+    txId: string;
+    type: "treasury" | "split-lock" | "deposit";
+    currentBlock?: number;
+    futureBlock?: number;
+  }) => {
+    const newFlow = {
+      id: `CF-${Date.now()}`,
+      type,
+      amount: depositAmount,
+      treasury: treasuryFlow,
+      lock: type === "treasury" ? 0 : lockFlow,
+      remaining:
+        type === "treasury" ? depositAmount - treasuryFlow : remainingFlow,
+      txId,
+      wallet: walletAddress,
+      currentBlock: currentBlock || null,
+      futureBlock: futureBlock || null,
+      createdAt: new Date().toLocaleString(),
+    };
+
+    const oldFlows = JSON.parse(
+      localStorage.getItem("createflow_flows") || "[]"
+    );
+
+    localStorage.setItem(
+      "createflow_flows",
+      JSON.stringify([newFlow, ...oldFlows])
+    );
+  };
+
   const fetchUSDCxBalance = async (address: string) => {
     try {
       setWalletBalance("Fetching...");
@@ -104,7 +140,6 @@ export default function CreateFlow() {
       if (!response.ok) throw new Error("Failed to fetch tx history");
 
       const data = await response.json();
-
       const txs = data?.results || [];
 
       let totalMicroDeposited = 0;
@@ -325,6 +360,8 @@ export default function CreateFlow() {
 
       const txId = await setRoutingRules(treasury, treasuryFlow);
 
+      saveFlow({ txId, type: "treasury" });
+
       setTxStage("pending");
       setTxStatus("Transaction submitted...");
       setTxStage("confirmed");
@@ -332,7 +369,7 @@ export default function CreateFlow() {
       router.push(
         `/result?amount=${depositAmount}&treasuryAmount=${treasuryFlow}&lockAmount=0&remainingAmount=${
           depositAmount - treasuryFlow
-        }&txId=${txId}&primitive=treasury`
+        }&txId=${txId}&flowId=CF-${Date.now()}&primitive=treasury`
       );
     } catch (error) {
       console.error(error);
@@ -369,12 +406,19 @@ export default function CreateFlow() {
         treasuryFlow
       );
 
+      saveFlow({
+        txId: result.txId,
+        type: "split-lock",
+        currentBlock: result.currentBlock,
+        futureBlock: result.futureBlock,
+      });
+
       setTxStage("pending");
       setTxStatus("Transaction submitted...");
       setTxStage("confirmed");
 
       router.push(
-        `/result?amount=${depositAmount}&treasuryAmount=${treasuryFlow}&lockAmount=${lockFlow}&remainingAmount=${remainingFlow}&txId=${result.txId}&currentBlock=${result.currentBlock}&futureBlock=${result.futureBlock}&primitive=split-lock`
+        `/result?amount=${depositAmount}&treasuryAmount=${treasuryFlow}&lockAmount=${lockFlow}&remainingAmount=${remainingFlow}&txId=${result.txId}&currentBlock=${result.currentBlock}&futureBlock=${result.futureBlock}&flowId=CF-${Date.now()}&primitive=split-lock`
       );
     } catch (error) {
       console.error(error);
@@ -435,6 +479,8 @@ export default function CreateFlow() {
 
       const txId = await depositUSDCx(depositAmount, walletAddress);
 
+      saveFlow({ txId, type: "deposit" });
+
       setTxStage("pending");
       setTxStatus("Deposit transaction submitted. Indexing history...");
 
@@ -445,7 +491,7 @@ export default function CreateFlow() {
       setTxStage("confirmed");
 
       router.push(
-        `/result?amount=${depositAmount}&treasuryAmount=${treasuryFlow}&lockAmount=${lockFlow}&remainingAmount=${remainingFlow}&txId=${txId}&primitive=deposit`
+        `/result?amount=${depositAmount}&treasuryAmount=${treasuryFlow}&lockAmount=${lockFlow}&remainingAmount=${remainingFlow}&txId=${txId}&flowId=CF-${Date.now()}&primitive=deposit`
       );
     } catch (error) {
       console.error(error);
@@ -466,10 +512,7 @@ export default function CreateFlow() {
     <main className="min-h-screen bg-black text-white px-4 py-8">
       <section className="max-w-6xl mx-auto">
         <div className="mb-6 flex gap-3">
-          <a
-            href="/"
-            className="rounded-xl border border-zinc-700 px-4 py-2 text-sm"
-          >
+          <a href="/" className="rounded-xl border border-zinc-700 px-4 py-2 text-sm">
             Home
           </a>
 
@@ -478,6 +521,10 @@ export default function CreateFlow() {
             className="rounded-xl border border-orange-500 px-4 py-2 text-sm text-orange-400"
           >
             Create Flow
+          </a>
+
+          <a href="/flows" className="rounded-xl border border-zinc-700 px-4 py-2 text-sm">
+            My Flows
           </a>
         </div>
 
@@ -492,8 +539,7 @@ export default function CreateFlow() {
             </h1>
 
             <p className="mt-3 max-w-2xl text-gray-400">
-              Programmable treasury routing using FlowVault primitives on
-              Stacks.
+              Programmable treasury routing using FlowVault primitives on Stacks.
             </p>
           </div>
 
