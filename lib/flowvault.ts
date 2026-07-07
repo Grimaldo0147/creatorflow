@@ -56,6 +56,7 @@ export async function getCurrentTestnetBlockHeight() {
   }
 
   const data = await response.json();
+
   return data.results[0].height;
 }
 
@@ -64,7 +65,10 @@ export async function setRoutingRules(
   splitAmount: number
 ) {
   const { request } = await import("@stacks/connect");
-  const { principalCV, someCV, uintCV } = await import("@stacks/transactions");
+
+  const { principalCV, someCV, uintCV } = await import(
+    "@stacks/transactions"
+  );
 
   const response: any = await request("stx_callContract", {
     contract: `${FLOWVAULT_ADDRESS}.${FLOWVAULT_NAME}`,
@@ -81,7 +85,7 @@ export async function setRoutingRules(
   const txId = extractTxId(response);
 
   if (!txId) {
-    throw new Error("Transaction submitted, but no txId was returned.");
+    throw new Error("Transaction submitted, but no txId returned.");
   }
 
   return txId;
@@ -90,20 +94,21 @@ export async function setRoutingRules(
 export async function setSplitAndLockRules(
   splitAddress: string,
   lockAmount: number,
-  splitAmount: number
+  splitAmount: number,
+  unlockBlock: number
 ) {
   const { request } = await import("@stacks/connect");
-  const { principalCV, someCV, uintCV } = await import("@stacks/transactions");
 
-  const currentBlock = await getCurrentTestnetBlockHeight();
-  const futureBlock = currentBlock + 100;
+  const { principalCV, someCV, uintCV } = await import(
+    "@stacks/transactions"
+  );
 
   const response: any = await request("stx_callContract", {
     contract: `${FLOWVAULT_ADDRESS}.${FLOWVAULT_NAME}`,
     functionName: "set-routing-rules",
     functionArgs: [
       uintCV(lockAmount),
-      uintCV(futureBlock),
+      uintCV(unlockBlock),
       someCV(principalCV(splitAddress.trim())),
       uintCV(splitAmount),
     ],
@@ -113,22 +118,29 @@ export async function setSplitAndLockRules(
   const txId = extractTxId(response);
 
   if (!txId) {
-    throw new Error("Transaction submitted, but no txId was returned.");
+    throw new Error("Transaction submitted, but no txId returned.");
   }
 
   return {
     txId,
-    currentBlock,
-    futureBlock,
+    unlockBlock,
   };
 }
 
-export async function depositUSDCx(amount: number, senderAddress: string) {
+export async function depositUSDCx(
+  amount: number,
+  senderAddress: string
+) {
   const { request } = await import("@stacks/connect");
-  const { contractPrincipalCV, uintCV } = await import("@stacks/transactions");
+
+  const { contractPrincipalCV, uintCV } = await import(
+    "@stacks/transactions"
+  );
 
   if (!senderAddress || !senderAddress.startsWith("ST")) {
-    throw new Error("Wrong network. Please switch to Stacks Testnet.");
+    throw new Error(
+      "Wrong network. Please switch to Stacks Testnet."
+    );
   }
 
   const microAmount = BigInt(Math.round(amount * 1_000_000));
@@ -148,7 +160,9 @@ export async function depositUSDCx(amount: number, senderAddress: string) {
   const txId = extractTxId(response);
 
   if (!txId) {
-    throw new Error("Deposit transaction submitted, but no txId was returned.");
+    throw new Error(
+      "Deposit transaction submitted, but no txId returned."
+    );
   }
 
   return txId;
