@@ -12,6 +12,7 @@ function ResultContent() {
   const remainingAmount = Number(searchParams.get("remainingAmount") || 0);
 
   const txId = searchParams.get("txId") || "";
+  const flowId = searchParams.get("flowId") || "CF-Saved-Flow";
   const primitive = searchParams.get("primitive") || "treasury";
   const currentBlock = searchParams.get("currentBlock") || "";
   const futureBlock = searchParams.get("futureBlock") || "";
@@ -27,18 +28,22 @@ function ResultContent() {
     <main className="min-h-screen bg-black px-4 py-8 text-white">
       <section className="mx-auto max-w-6xl">
         <div className="mb-6 flex gap-3">
-          <a
-            href="/"
-            className="rounded-xl border border-zinc-700 px-4 py-2 text-sm"
-          >
+          <a href="/" className="rounded-xl border border-zinc-700 px-4 py-2 text-sm">
             Home
           </a>
 
           <a
             href="/create-flow"
-            className="rounded-xl border border-orange-500 px-4 py-2 text-sm text-orange-400"
+            className="rounded-xl border border-zinc-700 px-4 py-2 text-sm"
           >
             Create Flow
+          </a>
+
+          <a
+            href="/flows"
+            className="rounded-xl border border-orange-500 px-4 py-2 text-sm text-orange-400"
+          >
+            My Flows
           </a>
         </div>
 
@@ -64,9 +69,9 @@ function ResultContent() {
 
           <div className="rounded-2xl border border-green-500/40 bg-green-500/10 px-5 py-4 text-green-400">
             <p className="text-xs font-bold uppercase tracking-[0.2em]">
-              Status
+              Flow ID
             </p>
-            <p className="mt-1 text-2xl font-black">Confirmed</p>
+            <p className="mt-1 break-all text-xl font-black">{flowId}</p>
           </div>
         </div>
 
@@ -145,8 +150,8 @@ function ResultContent() {
                 </h2>
 
                 <p className="mt-2 text-gray-400">
-                  CreateFlow fetched the latest Stacks testnet block and
-                  generated a future unlock block automatically.
+                  CreateFlow can generate future unlock logic using Stacks
+                  testnet block height.
                 </p>
 
                 <div className="mt-5 grid gap-4 sm:grid-cols-2">
@@ -155,7 +160,7 @@ function ResultContent() {
                       Current Block
                     </p>
                     <p className="mt-2 break-all text-2xl font-black">
-                      {currentBlock || "Fetched from Hiro API"}
+                      {currentBlock || "Not used for deposit-only flow"}
                     </p>
                   </div>
 
@@ -164,7 +169,7 @@ function ResultContent() {
                       Unlock Block
                     </p>
                     <p className="mt-2 break-all text-2xl font-black">
-                      {futureBlock || "Current Block + 100"}
+                      {futureBlock || "Not used for deposit-only flow"}
                     </p>
                   </div>
                 </div>
@@ -243,6 +248,13 @@ function ResultContent() {
                 className="mt-5 block w-full rounded-2xl bg-orange-500 px-5 py-4 text-center font-black text-black transition hover:bg-orange-400"
               >
                 View on Hiro Explorer
+              </a>
+
+              <a
+                href="/flows"
+                className="mt-3 block w-full rounded-2xl border border-green-500 px-5 py-4 text-center font-black text-green-400 transition hover:bg-green-500 hover:text-black"
+              >
+                View saved flows
               </a>
 
               <a
