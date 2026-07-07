@@ -29,7 +29,7 @@ export default function CreateFlow() {
 
   const [walletAddress, setWalletAddress] = useState("");
   const [walletBalance, setWalletBalance] = useState("Not fetched yet");
-  const [flowVaultBalance, setFlowVaultBalance] = useState("Not fetched yet");
+  const [userDeposited, setUserDeposited] = useState("Not fetched yet");
 
   const [txStatus, setTxStatus] = useState("");
   const [txStage, setTxStage] = useState("idle");
@@ -44,6 +44,7 @@ export default function CreateFlow() {
   const lockFlow = Number(lockAmount || 0);
 
   const isInvalidAllocation = treasuryFlow + lockFlow > depositAmount;
+
   const remainingFlow = isInvalidAllocation
     ? 0
     : Math.max(depositAmount - treasuryFlow - lockFlow, 0);
@@ -60,8 +61,8 @@ export default function CreateFlow() {
     { id: "confirmed", label: "Confirmed" },
   ];
 
-  const formatUSDCx = (rawBalance: string) => {
-    const balance = Number(rawBalance || "0") / 1_000_000;
+  const formatUSDCx = (rawBalance: string | number) => {
+    const balance = Number(rawBalance || 0) / 1_000_000;
     return `${balance} USDCx`;
   };
 
@@ -73,9 +74,7 @@ export default function CreateFlow() {
         `https://api.testnet.hiro.so/extended/v1/address/${address}/balances`
       );
 
-      if (!response.ok) {
-        throw new Error("Failed to fetch wallet balance");
-      }
+      if (!response.ok) throw new Error("Failed to fetch wallet balance");
 
       const data = await response.json();
 
@@ -89,44 +88,64 @@ export default function CreateFlow() {
     }
   };
 
-  const fetchFlowVaultBalance = async () => {
+  const fetchUserDepositHistory = async (address: string) => {
     try {
-      setFlowVaultBalance("Fetching...");
+      setUserDeposited("Indexing...");
 
       const response = await fetch(
-        `https://api.testnet.hiro.so/extended/v1/address/${FLOWVAULT_CONTRACT}/balances`
+        `https://api.testnet.hiro.so/extended/v1/address/${address}/transactions?limit=50`
       );
 
-      if (!response.ok) {
-        throw new Error("Failed to fetch FlowVault balance");
-      }
+      if (!response.ok) throw new Error("Failed to fetch tx history");
 
       const data = await response.json();
 
-      const rawBalance =
-        data?.fungible_tokens?.[USDCX_ASSET_KEY]?.balance || "0";
+      const txs = data?.results || [];
 
-      setFlowVaultBalance(formatUSDCx(rawBalance));
+      let totalMicroDeposited = 0;
+
+      for (const tx of txs) {
+        const isSuccess = tx?.tx_status === "success";
+        const isContractCall = tx?.tx_type === "contract_call";
+        const isFlowVault =
+          tx?.contract_call?.contract_id === FLOWVAULT_CONTRACT;
+        const isDeposit = tx?.contract_call?.function_name === "deposit";
+        const isSender = tx?.sender_address === address;
+
+        if (isSuccess && isContractCall && isFlowVault && isDeposit && isSender) {
+          const args = tx?.contract_call?.function_args || [];
+
+          const amountArg = args.find(
+            (arg: any) =>
+              String(arg?.repr || "").startsWith("u") &&
+              Number(String(arg?.repr || "").replace("u", "")) > 0
+          );
+
+          if (amountArg?.repr) {
+            const microAmount = Number(String(amountArg.repr).replace("u", ""));
+            totalMicroDeposited += microAmount;
+          }
+        }
+      }
+
+      setUserDeposited(formatUSDCx(totalMicroDeposited));
     } catch (error) {
       console.error(error);
-      setFlowVaultBalance("Failed to fetch");
+      setUserDeposited("Failed to index");
     }
   };
 
   const refreshBalances = async (address?: string) => {
     const activeAddress = address || walletAddress;
 
-    if (activeAddress && activeAddress.startsWith("ST")) {
-      await fetchUSDCxBalance(activeAddress);
-    }
+    if (!activeAddress || !activeAddress.startsWith("ST")) return;
 
-    await fetchFlowVaultBalance();
+    await fetchUSDCxBalance(activeAddress);
+    await fetchUserDepositHistory(activeAddress);
   };
 
   useEffect(() => {
     const savedWallet = localStorage.getItem("createflow_wallet");
-
-    fetchFlowVaultBalance();
 
     if (savedWallet) {
       setWalletAddress(savedWallet);
@@ -134,7 +153,7 @@ export default function CreateFlow() {
       if (savedWallet.startsWith("ST")) {
         setTxStatus("Wallet session restored.");
         setTxStage("confirmed");
-        fetchUSDCxBalance(savedWallet);
+        refreshBalances(savedWallet);
       } else {
         setTxStatus("Wrong network detected. Switch to Stacks Testnet.");
         setTxStage("failed");
@@ -145,9 +164,9 @@ export default function CreateFlow() {
 
   const disconnectWallet = () => {
     localStorage.removeItem("createflow_wallet");
-
     setWalletAddress("");
     setWalletBalance("Not fetched yet");
+    setUserDeposited("Not fetched yet");
     setTxStatus("");
     setTxStage("idle");
     setErrorMessage("");
@@ -178,12 +197,10 @@ export default function CreateFlow() {
   const blockWrongNetwork = () => {
     if (isWrongNetwork) {
       const message = "Wrong network. Please switch to Stacks Testnet.";
-
       setErrorMessage(message);
       setTxStage("failed");
       setTxStatus(message);
       alert(message);
-
       return true;
     }
 
@@ -226,11 +243,9 @@ export default function CreateFlow() {
 
       if (!address.startsWith("ST")) {
         const message = "Wrong network detected. Switch to Stacks Testnet.";
-
         setErrorMessage(message);
         setTxStage("failed");
         setTxStatus(message);
-
         return;
       }
 
@@ -307,7 +322,6 @@ export default function CreateFlow() {
 
       setTxStage("pending");
       setTxStatus("Transaction submitted...");
-
       setTxStage("confirmed");
 
       router.push(
@@ -352,7 +366,6 @@ export default function CreateFlow() {
 
       setTxStage("pending");
       setTxStatus("Transaction submitted...");
-
       setTxStage("confirmed");
 
       router.push(
@@ -394,9 +407,11 @@ export default function CreateFlow() {
       const txId = await depositUSDCx(depositAmount, walletAddress);
 
       setTxStage("pending");
-      setTxStatus("Deposit transaction submitted...");
+      setTxStatus("Deposit transaction submitted. Indexing history...");
 
-      await refreshBalances(walletAddress);
+      setTimeout(() => {
+        refreshBalances(walletAddress);
+      }, 5000);
 
       setTxStage("confirmed");
 
@@ -560,8 +575,8 @@ export default function CreateFlow() {
                 </div>
 
                 <div className="flex justify-between">
-                  <span>Deposited in FlowVault</span>
-                  <span className="text-orange-400">{flowVaultBalance}</span>
+                  <span>Your Indexed Deposits</span>
+                  <span className="text-orange-400">{userDeposited}</span>
                 </div>
 
                 <div className="flex justify-between">
